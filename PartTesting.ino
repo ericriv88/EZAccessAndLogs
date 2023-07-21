@@ -2,6 +2,7 @@
 #include <MFRC522.h>
 #include <LiquidCrystal_I2C.h>
 #include <WiFiNINA.h>
+#include <SD.h>
 #include "arduino_secrets.h"
 #include "HTML.h"
 
@@ -14,11 +15,12 @@ IPAddress ip;                       //global variable for ip address
 
 WiFiClient client = server.available();
  
-#define SS_PIN 7  //Define SDA and RST pins for MFRC522 connection
+#define SS_PIN 7                    //Define SDA and RST pins for MFRC522 connection
 #define RST_PIN 6
+const int chipSelect = 1;           //Define chipselect pin for SD card module
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 LiquidCrystal_I2C lcd(0x27,16,2);   // Create LCD instance.
-String ValidUID = blue_uid;         //Define Valid UID string from arduino_secrets.h
+String ValidUID;                    //Define Valid UID string
 bool IPConnect = false;             //indicates when authorized client connected to server
 bool IPSetup = false;               //indicates if system has been setup by authorized client
  
@@ -29,7 +31,7 @@ void setup()
   lcd.init();       //Initiate LCD
   lcd.clear();         
   lcd.backlight();      // Make sure backlight is on
-  lcd.setCursor(6,0);   //Set cursor to character 4 on line 0
+  lcd.setCursor(6,0);   //Set cursor to character 6 on line 0
   lcd.print("WiFi");
   lcd.setCursor(5,1);
   lcd.print("Set Up");
@@ -42,9 +44,32 @@ void setup()
   SPI.begin();      // Initiate  SPI bus
   mfrc522.PCD_Init();   // Initiate MFRC522
 
-  lcd.clear();          //show IP address on LCD
-  lcd.setCursor(0,0);
-  lcd.print(ip);
+  Serial.print("Initializing SD card...");    //Initialize SD card 
+  if (!SD.begin(chipSelect)) {
+    Serial.println("initialization failed!"); //If failed to initalize, send message to serial and lcd
+    lcd.clear();         
+    lcd.setCursor(5,0);
+    lcd.print("SD");
+    lcd.setCursor(4,1);
+    lcd.print("Failed");
+    while (1);
+  }
+  Serial.println("initialization done.");
+
+  IPSetup = readSDBool("SET.txt"); //read file on SD card for IPSetup value
+
+  if(IPSetup) {
+    lcd.clear();
+    lcd.setCursor(4,0);
+    lcd.print("EZ Access");
+    lcd.setCursor(4,1);
+    lcd.print("And Logs");
+  }
+  else {
+    lcd.clear();          //show IP address on LCD
+    lcd.setCursor(0,0);
+    lcd.print(ip);
+  }
 }
 
 void loop() 
@@ -191,6 +216,7 @@ void printWEB() {
               if (postBody == key) {    //activate system if POST contents matches the key defined in secrets header
                 IPConnect = true;
                 IPSetup = true;
+                overWriteSDBool("SET.txt", true); //overwrite file in SD card 
                 lcd.clear();
                 lcd.setCursor(4,0); 
                 lcd.print("EZ Access");
@@ -234,7 +260,12 @@ void printWEB() {
           ValidUID = blue_uid; //Define Valid UID string from arduino_secrets.h       
         }
         if (currentLine.endsWith("GET /L") && IPConnect) {
-          ValidUID = white_uid; //Define Valid UID string from arduino_secrets.h      
+          overWriteSDBool("SET.txt", false); //Reset setting and logout
+          IPSetup = false;
+          IPConnect = false;
+          lcd.clear();          //show IP address on LCD
+          lcd.setCursor(0,0);
+          lcd.print(ip);    
         }
         if (currentLine.endsWith("GET /S") && IPConnect) {
           IPConnect = false;    //logout so that no changes can be made to access list
@@ -246,4 +277,38 @@ void printWEB() {
     Serial.println("client disconnected");
     Serial.println();
   }
+}
+
+bool readSDBool(String fileName) {
+  File myFile;                        //file varriable for SD card use
+  myFile = SD.open(fileName);        //opens .txt file specified by fileName
+  String temp = "";
+  while (myFile.available()) {
+    char k = myFile.read();
+    if(k == '\n' || k == '\r') {
+      if(temp == "true") {  //if string is "true" then close file and return true
+        myFile.close();
+        return true;
+      }
+    }
+    else {
+      temp += k;
+    }
+  }
+  myFile.close();   //close file and return false
+  return false; 
+}
+
+void overWriteSDBool(String fileName, bool set) {
+  File myFile;          //file varriable for SD card use
+  SD.remove(fileName);  //delete file fr overwrite
+  myFile = SD.open(fileName, FILE_WRITE);
+  //write true or false to file depending on set
+  if(set) { 
+    myFile.println("true");
+  }
+  else {
+    myFile.println("false");
+  }
+  myFile.close();
 }

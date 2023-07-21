@@ -10,11 +10,11 @@
   <nav>\
     <ul>\
       <li><a href=\"/H\">Make blue tag valid</a></li>\
-      <li><a href=\"/L\">Make white tag valid</a></li>\
     </ul>\
   </nav>\
   <section>\
     <p><a href=\"/S\">Logout</a></p>\
+    <p><a href=\"/L\">Reset and Logout</a></p>\
   </section>\
   <footer>\
     <hr>\
@@ -81,5 +81,4 @@
   </footer>\
 </body>\
 </html>"
-
 
