@@ -23,6 +23,7 @@ LiquidCrystal_I2C lcd(0x27,16,2);   // Create LCD instance.
 String ValidUID;                    //Define Valid UID string
 bool IPConnect = false;             //indicates when authorized client connected to server
 bool IPSetup = false;               //indicates if system has been setup by authorized client
+bool CredChange = false;            //indicates if credential change is occuring
  
 void setup() 
 {
@@ -80,6 +81,10 @@ void loop()
     UIDAccess();
   }
 }
+
+////////////////////////////////////////////////////////////////////////////
+//***************************Functions***********************************///
+////////////////////////////////////////////////////////////////////////////
 
 void UIDAccess()
 {
@@ -213,15 +218,21 @@ void printWEB() {
             //if there is post data then serial print it
             if (postData) {
               String postBody = client.readString();
-              if (postBody == key) {    //activate system if POST contents matches the key defined in secrets header
-                IPConnect = true;
-                IPSetup = true;
-                overWriteSDBool("SET.txt", true); //overwrite file in SD card 
-                lcd.clear();
-                lcd.setCursor(4,0); 
-                lcd.print("EZ Access");
-                lcd.setCursor(4,1);
-                lcd.print("And Logs");
+              if(!CredChange) {
+                if (postBody == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
+                  IPConnect = true;
+                  IPSetup = true;
+                  overWriteSDBool("SET.txt", true); //overwrite file in SD card 
+                  lcd.clear();
+                  lcd.setCursor(4,0); 
+                  lcd.print("EZ Access");
+                  lcd.setCursor(4,1);
+                  lcd.print("And Logs");
+                }
+              }
+              else {      //indicates a credential change
+                overWriteSD("LOGIN.txt", postBody); //overwrite credential in SD
+                CredChange = false;
               }
             }
 
@@ -232,14 +243,21 @@ void printWEB() {
             client.println();
            
             //create the buttons
-            if (IPConnect) {  //if the system is activated
-              client.print(HTML_active);  //send HTML code to choose wich tag is valid
+            if (IPConnect) {  //if the system is activated send either credential change or home page HTML code
+              if (CredChange) {
+                client.print(HTML_CredChangeA);   //send credential change HTML code
+                client.print(ip);               //which requires ip address
+                client.print(HTML_CredChangeB);
+              }
+              else {
+                client.print(HTML_HomePage);  //send HTML of home page if logged in
+              }
             }
 
             else {      //if system is not activated
-              client.print(HTML_inactiveA);   //send longin HTML code
+              client.print(HTML_LoginA);   //send longin HTML code
               client.print(ip);               //which requires ip address
-              client.print(HTML_inactiveB);
+              client.print(HTML_LoginB);
             }
             
             // The HTTP response ends with another blank line:
@@ -256,19 +274,23 @@ void printWEB() {
           currentLine += c;      // add it to the end of the currentLine
         }
 
-        if (currentLine.endsWith("GET /H") && IPConnect) {
+        if (currentLine.endsWith("GET /Blue") && IPConnect) {
           ValidUID = blue_uid; //Define Valid UID string from arduino_secrets.h       
         }
-        if (currentLine.endsWith("GET /L") && IPConnect) {
-          overWriteSDBool("SET.txt", false); //Reset setting and logout
+        if (currentLine.endsWith("GET /Reset") && IPConnect) {
+          overWriteSDBool("SET.txt", false); //Reset all settings and logout
+          overWriteSD("LOGIN.txt", default_login);
           IPSetup = false;
           IPConnect = false;
           lcd.clear();          //show IP address on LCD
           lcd.setCursor(0,0);
           lcd.print(ip);    
         }
-        if (currentLine.endsWith("GET /S") && IPConnect) {
+        if (currentLine.endsWith("GET /Logout") && IPConnect) {
           IPConnect = false;    //logout so that no changes can be made to access list
+        }
+        if (currentLine.endsWith("GET /Change") && IPConnect) {
+          CredChange = true;    //indicates credential change
         }
       }
     }
@@ -310,5 +332,37 @@ void overWriteSDBool(String fileName, bool set) {
   else {
     myFile.println("false");
   }
+  myFile.close();
+}
+
+String readSDLine(String fileName, int line) {
+  File myFile;                //file variable declaration
+  myFile = SD.open(fileName); //opens .txt file specified by fileName
+  String temp = "";
+  int lineCount = 1;
+  while (myFile.available()) {
+    char k = myFile.read();
+    if(k == '\n' || k == '\r') {
+      if(lineCount == line) {   //if on correct line, close file and return temp
+        myFile.close();
+        return temp;
+      }
+      temp = "";  //clear temp for next line
+      lineCount += 1; //increment lineCount
+    }
+    else {
+      temp += k;
+    }
+  }
+  myFile.close();   //close file
+  return temp;      //retuern the empty string if defined line is empty
+}
+
+void overWriteSD(String fileName, String content)
+{
+  File myFile;          //file varriable for SD card use
+  SD.remove(fileName);  //delete file fr overwrite
+  myFile = SD.open(fileName, FILE_WRITE);
+  myFile.println(content);
   myFile.close();
 }
