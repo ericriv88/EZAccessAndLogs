@@ -4,4 +4,4 @@
 #define blue_uid ""
 #define white_uid ""
 
-#define key "userName=&password="
+#define default_login "userName=&password="
