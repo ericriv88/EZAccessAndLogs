@@ -53,7 +53,9 @@ void setup()
     lcd.print("SD");
     lcd.setCursor(4,1);
     lcd.print("Failed");
-    while (1);
+    while(!SD.begin(chipSelect)) {
+      delay(5000);
+    }
   }
   Serial.println("initialization done.");
 
@@ -101,7 +103,6 @@ void UIDAccess()
   //Display UID in monitor and save to string
   Serial.print("Presented UID = ");
   String content= "";
-  byte letter;
   for (byte i = 0; i < mfrc522.uid.size; i++) 
   {
     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
@@ -140,6 +141,38 @@ void UIDAccess()
     lcd.setCursor(4,1);
     lcd.print("And Logs");
   }
+}
+
+void newCardRegister() {
+  lcd.clear();
+  lcd.setCursor(4,0);
+  lcd.print("Present");
+  lcd.setCursor(4,1); 
+  lcd.print("New Card");
+
+  while (!mfrc522.PICC_IsNewCardPresent()); //wait for new card to be presented
+  while (!mfrc522.PICC_ReadCardSerial());
+
+  String content= "";                //get UID from sensor and place in string
+  for (byte i = 0; i < mfrc522.uid.size; i++) 
+  {
+    content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+    content.concat(String(mfrc522.uid.uidByte[i], HEX));
+  }
+  content.toUpperCase();
+  ValidUID = content.substring(1);  //make new ValidUID = presented UID
+
+  lcd.clear();
+  lcd.setCursor(4,0);
+  lcd.print("New Card");
+  lcd.setCursor(4,1); 
+  lcd.print("Registered");
+  delay(4000);
+  lcd.clear();
+  lcd.setCursor(4,0);
+  lcd.print("EZ Access");
+  lcd.setCursor(4,1);
+  lcd.print("And Logs");
 }
 
 void printWifiStatus() {
@@ -274,8 +307,8 @@ void printWEB() {
           currentLine += c;      // add it to the end of the currentLine
         }
 
-        if (currentLine.endsWith("GET /Blue") && IPConnect) {
-          ValidUID = blue_uid; //Define Valid UID string from arduino_secrets.h       
+        if (currentLine.endsWith("GET /Register") && IPConnect) {
+          newCardRegister();  //Register new card and make it the ValidUID      
         }
         if (currentLine.endsWith("GET /Reset") && IPConnect) {
           overWriteSDBool("SET.txt", false); //Reset all settings and logout

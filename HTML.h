@@ -9,7 +9,7 @@
   </header>\
   <nav>\
     <ul>\
-      <li><a href=\"/Blue\">Make blue tag valid</a></li>\
+      <li><a href=\"/Register\">Register New Card</a></li>\
       <li><a href=\"/Change\">Change Username and Password</a></li>\
     </ul>\
   </nav>\
