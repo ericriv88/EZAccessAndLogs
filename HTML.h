@@ -10,6 +10,7 @@
   <nav>\
     <ul>\
       <li><a href=\"/Register\">Register New Card</a></li>\
+      <li><a href=\"/Delete\">Delete All Cards</a></li>\
       <li><a href=\"/Change\">Change Username and Password</a></li>\
     </ul>\
   </nav>\

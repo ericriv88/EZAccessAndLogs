@@ -20,7 +20,6 @@ WiFiClient client = server.available();
 const int chipSelect = 1;           //Define chipselect pin for SD card module
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 LiquidCrystal_I2C lcd(0x27,16,2);   // Create LCD instance.
-String ValidUID;                    //Define Valid UID string
 bool IPConnect = false;             //indicates when authorized client connected to server
 bool IPSetup = false;               //indicates if system has been setup by authorized client
 bool CredChange = false;            //indicates if credential change is occuring
@@ -113,7 +112,7 @@ void UIDAccess()
   Serial.println();
   content.toUpperCase();
   //Check if presented UID is valid
-  if (content.substring(1) == ValidUID) //if UID is valid
+  if (checkSDForString("UID.txt", content.substring(1))) //if UID is valid
   {
     lcd.clear();
     lcd.setCursor(4,0);
@@ -160,7 +159,10 @@ void newCardRegister() {
     content.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   content.toUpperCase();
-  ValidUID = content.substring(1);  //make new ValidUID = presented UID
+
+  if(!checkSDForString("UID.txt", content.substring(1))) {  //write UID to SD if not already there
+    writeSDLine("UID.txt", content.substring(1));
+  }
 
   lcd.clear();
   lcd.setCursor(4,0);
@@ -310,9 +312,13 @@ void printWEB() {
         if (currentLine.endsWith("GET /Register") && IPConnect) {
           newCardRegister();  //Register new card and make it the ValidUID      
         }
+        if (currentLine.endsWith("GET /Delete") && IPConnect) {
+          overWriteSD("UID.txt", "");  //Delete all UIDs from the SD     
+        }
         if (currentLine.endsWith("GET /Reset") && IPConnect) {
           overWriteSDBool("SET.txt", false); //Reset all settings and logout
           overWriteSD("LOGIN.txt", default_login);
+          overWriteSD("UID.txt", "");
           IPSetup = false;
           IPConnect = false;
           lcd.clear();          //show IP address on LCD
@@ -391,10 +397,39 @@ String readSDLine(String fileName, int line) {
   return temp;      //retuern the empty string if defined line is empty
 }
 
+bool checkSDForString(String fileName, String givenString) {
+  File myFile;                //file variable declaration
+  myFile = SD.open(fileName); //opens .txt file specified by fileName
+  String temp = "";
+  while (myFile.available()) {
+    char k = myFile.read();
+    if(k == '\n' || k == '\r') {
+      if(temp == givenString) {   //if line on SD equals the given string, close file and return true
+        myFile.close();
+        return true;
+      }
+      temp = "";  //clear temp for next line
+    }
+    else {
+      temp += k;
+    }
+  }
+  myFile.close();   //close file
+  return false;      //retuern the empty string if defined line is empty
+}
+
 void overWriteSD(String fileName, String content)
 {
   File myFile;          //file varriable for SD card use
-  SD.remove(fileName);  //delete file fr overwrite
+  SD.remove(fileName);  //delete file for overwrite
+  myFile = SD.open(fileName, FILE_WRITE);
+  myFile.println(content);
+  myFile.close();
+}
+
+void writeSDLine(String fileName, String content)
+{
+  File myFile;          //file varriable for SD card use
   myFile = SD.open(fileName, FILE_WRITE);
   myFile.println(content);
   myFile.close();
