@@ -23,6 +23,8 @@ LiquidCrystal_I2C lcd(0x27,16,2);   // Create LCD instance.
 bool IPConnect = false;             //indicates when authorized client connected to server
 bool IPSetup = false;               //indicates if system has been setup by authorized client
 bool CredChange = false;            //indicates if credential change is occuring
+bool CardRegister = false;          //indicates that a card is being registered
+bool CardManage = false;            //indicates card management mode
  
 void setup() 
 {
@@ -84,7 +86,7 @@ void loop()
 }
 
 ////////////////////////////////////////////////////////////////////////////
-//***************************Functions***********************************///
+//***********************UID Functions***********************************///
 ////////////////////////////////////////////////////////////////////////////
 
 void UIDAccess()
@@ -162,20 +164,38 @@ void newCardRegister() {
 
   if(!checkSDForString("UID.txt", content.substring(1))) {  //write UID to SD if not already there
     writeSDLine("UID.txt", content.substring(1));
+    CardRegister = true;    //ensures proper page is shown on web
+    lcd.clear();
+    lcd.setCursor(4,0);
+    lcd.print("New Card");
+    lcd.setCursor(4,1); 
+    lcd.print("Registered");
+    delay(4000);
+    lcd.clear();
+    lcd.setCursor(4,0);
+    lcd.print("EZ Access");
+    lcd.setCursor(4,1);
+    lcd.print("And Logs");
+  }
+  else {                    //indicate registered failed on LCD
+    lcd.clear();
+    lcd.setCursor(4,0);
+    lcd.print("Already");
+    lcd.setCursor(4,1); 
+    lcd.print("Registered");
+    delay(4000);
+    lcd.clear();
+    lcd.setCursor(4,0);
+    lcd.print("EZ Access");
+    lcd.setCursor(4,1);
+    lcd.print("And Logs");
   }
 
-  lcd.clear();
-  lcd.setCursor(4,0);
-  lcd.print("New Card");
-  lcd.setCursor(4,1); 
-  lcd.print("Registered");
-  delay(4000);
-  lcd.clear();
-  lcd.setCursor(4,0);
-  lcd.print("EZ Access");
-  lcd.setCursor(4,1);
-  lcd.print("And Logs");
 }
+
+////////////////////////////////////////////////////////////////////////////
+//**********************WiFi Functions***********************************///
+////////////////////////////////////////////////////////////////////////////
 
 void printWifiStatus() {
   //print the SSID of the network attached to:
@@ -253,7 +273,7 @@ void printWEB() {
             //if there is post data then serial print it
             if (postData) {
               String postBody = client.readString();
-              if(!CredChange) {
+              if(!CredChange && !CardRegister) {
                 if (postBody == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
                   IPConnect = true;
                   IPSetup = true;
@@ -265,9 +285,18 @@ void printWEB() {
                   lcd.print("And Logs");
                 }
               }
-              else {      //indicates a credential change
+              else if(CredChange){      //indicates a credential change
                 overWriteSD("LOGIN.txt", postBody); //overwrite credential in SD
                 CredChange = false;
+              }
+              else {        //indicates card register
+                String nickName;
+                for(int i = 5; i < postBody.length(); i++) {    //get only the nickname from the postBody
+                  nickName += postBody[i];
+                }
+                //*** NEED TO CHECK FOR REAPEATS ***///
+                writeSDLine("NAME.txt", nickName);  //write nickname to SD
+                CardRegister = false;
               }
             }
 
@@ -283,6 +312,21 @@ void printWEB() {
                 client.print(HTML_CredChangeA);   //send credential change HTML code
                 client.print(ip);               //which requires ip address
                 client.print(HTML_CredChangeB);
+              }
+              else if (CardRegister) {
+                client.print(HTML_CardRegisterA);   //send card register HTML code
+                client.print(ip);                  //which requires ip address
+                client.print(HTML_CardRegisterB);
+              }
+              else if (CardManage) {
+                client.print(HTML_CardManageA);   //send card manage HTML code
+                for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {    //which requires all nicknames be printed between <li></li>
+                client.print("<li>");
+                client.print(readSDLine("NAME.txt", i));
+                client.print("</li>");
+                }
+                client.print(HTML_CardManageB);
+                CardManage = false;              //get out of card management mode
               }
               else {
                 client.print(HTML_HomePage);  //send HTML of home page if logged in
@@ -312,13 +356,18 @@ void printWEB() {
         if (currentLine.endsWith("GET /Register") && IPConnect) {
           newCardRegister();  //Register new card and make it the ValidUID      
         }
+        if (currentLine.endsWith("GET /Manage") && IPConnect) {
+          CardManage = true;    //indicates card management request
+        }
         if (currentLine.endsWith("GET /Delete") && IPConnect) {
-          overWriteSD("UID.txt", "");  //Delete all UIDs from the SD     
+          whipeSDFile("UID.txt");  //Delete all UIDs and nicknames from the SD  
+          whipeSDFile("NAME.txt");   
         }
         if (currentLine.endsWith("GET /Reset") && IPConnect) {
           overWriteSDBool("SET.txt", false); //Reset all settings and logout
           overWriteSD("LOGIN.txt", default_login);
-          overWriteSD("UID.txt", "");
+          whipeSDFile("UID.txt");
+          whipeSDFile("NAME.txt");
           IPSetup = false;
           IPConnect = false;
           lcd.clear();          //show IP address on LCD
@@ -339,6 +388,10 @@ void printWEB() {
     Serial.println();
   }
 }
+
+////////////////////////////////////////////////////////////////////////////
+//************************SD Functions***********************************///
+////////////////////////////////////////////////////////////////////////////
 
 bool readSDBool(String fileName) {
   File myFile;                        //file varriable for SD card use
@@ -381,7 +434,7 @@ String readSDLine(String fileName, int line) {
   int lineCount = 1;
   while (myFile.available()) {
     char k = myFile.read();
-    if(k == '\n' || k == '\r') {
+    if(k == '\r') {
       if(lineCount == line) {   //if on correct line, close file and return temp
         myFile.close();
         return temp;
@@ -394,7 +447,21 @@ String readSDLine(String fileName, int line) {
     }
   }
   myFile.close();   //close file
-  return temp;      //retuern the empty string if defined line is empty
+  return temp;      //return the empty string if defined line is empty
+}
+
+int SDLineCount(String fileName) {
+  File myFile;                //file variable declaration
+  myFile = SD.open(fileName); //opens .txt file specified by fileName
+  int lineCount = 0;          //initialize linecount
+  while (myFile.available()) {
+    char k = myFile.read();
+    if(k == '\r') {
+      lineCount += 1; //increment lineCount
+    }
+  }
+  myFile.close();   //close file
+  return lineCount;      //retrn line ocunt
 }
 
 bool checkSDForString(String fileName, String givenString) {
@@ -433,4 +500,11 @@ void writeSDLine(String fileName, String content)
   myFile = SD.open(fileName, FILE_WRITE);
   myFile.println(content);
   myFile.close();
+}
+
+void whipeSDFile(String fileName) {
+  File myFile;          //file varriable for SD card use
+  SD.remove(fileName);  //delete file 
+  myFile = SD.open(fileName, FILE_WRITE);   //recreate file
+  myFile.close();       //close file
 }
