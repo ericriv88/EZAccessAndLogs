@@ -11,7 +11,6 @@
     <ul>\
       <li><a href=\"/Register\">Register New Card</a></li>\
       <li><a href=\"/Manage\">Manage Registered Cards</a></li>\
-      <li><a href=\"/Delete\">Delete All Cards</a></li>\
       <li><a href=\"/Change\">Change Username and Password</a></li>\
     </ul>\
   </nav>\
@@ -211,9 +210,8 @@
 #define HTML_CardManageB "</ul>\
   </nav>\
   <section>\
-    <p><a href=\"/\">Main Menu</a></p>\
-    <p><a href=\"/Logout\">Logout</a></p>\
-    <p><a href=\"/Reset\">Reset and Logout</a> - This will reset ALL settings</p>\
+    <p><a href=\"/Delete\">Delete All Cards</a></p>\
+    <p><a href=\"/Menu\">Main Menu</a></p>\
   </section>\
   <footer>\
     <hr>\

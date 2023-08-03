@@ -152,7 +152,22 @@ void newCardRegister() {
   lcd.print("New Card");
 
   while (!mfrc522.PICC_IsNewCardPresent()); //wait for new card to be presented
-  while (!mfrc522.PICC_ReadCardSerial());
+  while (!mfrc522.PICC_ReadCardSerial()) {
+    if (!mfrc522.PICC_IsNewCardPresent()) { //fail case triggered
+      lcd.clear();
+      lcd.setCursor(4,0);
+      lcd.print("Register");
+      lcd.setCursor(4,1); 
+      lcd.print("Failed");
+      delay(4000);
+      lcd.clear();
+      lcd.setCursor(4,0);
+      lcd.print("EZ Access");
+      lcd.setCursor(4,1);
+      lcd.print("And Logs");
+      return;
+    }
+  }
 
   String content= "";                //get UID from sensor and place in string
   for (byte i = 0; i < mfrc522.uid.size; i++) 
@@ -320,13 +335,14 @@ void printWEB() {
               }
               else if (CardManage) {
                 client.print(HTML_CardManageA);   //send card manage HTML code
-                for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {    //which requires all nicknames be printed between <li></li>
-                client.print("<li>");
+                for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {    //which requires all nicknames be printed between as anchors giving option to delete
+                client.print("<li><a href=\"/");
+                client.print(i);
+                client.print("\">Delete ");
                 client.print(readSDLine("NAME.txt", i));
-                client.print("</li>");
+                client.print("</a></li>");
                 }
                 client.print(HTML_CardManageB);
-                CardManage = false;              //get out of card management mode
               }
               else {
                 client.print(HTML_HomePage);  //send HTML of home page if logged in
@@ -353,6 +369,7 @@ void printWEB() {
           currentLine += c;      // add it to the end of the currentLine
         }
 
+        //Check for all anchor text presses
         if (currentLine.endsWith("GET /Register") && IPConnect) {
           newCardRegister();  //Register new card and make it the ValidUID      
         }
@@ -380,6 +397,18 @@ void printWEB() {
         if (currentLine.endsWith("GET /Change") && IPConnect) {
           CredChange = true;    //indicates credential change
         }
+        if(IPConnect && CardManage) {
+          for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {   //check if any of the cards are trying to be deleted
+            String cardDelete = "GET /" + String(i);
+            if(currentLine.endsWith(cardDelete)) {
+              deleteSDLine("NAME.txt", i);    //delete nickanme and UID from files
+              deleteSDLine("UID.txt", i);
+            }
+          }
+        }
+        if (currentLine.endsWith("GET /Menu") && IPConnect) {   //need this for going back to main page from card management
+          CardManage = false;     
+        }
       }
     }
     // close the connection:
@@ -399,14 +428,15 @@ bool readSDBool(String fileName) {
   String temp = "";
   while (myFile.available()) {
     char k = myFile.read();
-    if(k == '\n' || k == '\r') {
+    if(k == '\r') {
       if(temp == "true") {  //if string is "true" then close file and return true
         myFile.close();
         return true;
       }
     }
     else {
-      temp += k;
+      if(k != '\n')
+        temp += k;
     }
   }
   myFile.close();   //close file and return false
@@ -443,11 +473,48 @@ String readSDLine(String fileName, int line) {
       lineCount += 1; //increment lineCount
     }
     else {
-      temp += k;
+      if(k != '\n')
+        temp += k;
     }
   }
   myFile.close();   //close file
   return temp;      //return the empty string if defined line is empty
+}
+
+void deleteSDLine(String fileName, int line) {
+  File myFile;                //file variable declaration
+  myFile = SD.open(fileName); //opens .txt file specified by fileName
+  String temp = "";
+  String SDret;            //initialize string that will be written to SD
+  int lineCount = 1;
+  while (myFile.available()) {
+    char k = myFile.read();
+    if(k == '\r') {
+      if(lineCount == line) {   //if on line to delete, dont add line to return string
+        temp = "";  //clear temp for next line
+        lineCount += 1; //increment lineCount
+      }
+      else {
+        SDret += temp;    //add line to return string with carage return
+        temp = "";  //clear temp for next line
+        if(line == SDLineCount(fileName) && lineCount == SDLineCount(fileName) -1) {    //gets rid of extra line when deleting last line
+          //dont add any end of line
+        }
+        else if(lineCount != SDLineCount(fileName)) {   //add end of line unless on last line 
+          SDret += '\r';
+          SDret += '\n';
+        }
+        lineCount += 1; //increment lineCount
+      }
+      
+    }
+    else {
+      if(k != '\n')
+        temp += k;
+    }
+  }
+  myFile.close();   //close file
+  overWriteSD(fileName, SDret); //overwrite file with new string that has deleted the line
 }
 
 int SDLineCount(String fileName) {
@@ -470,7 +537,7 @@ bool checkSDForString(String fileName, String givenString) {
   String temp = "";
   while (myFile.available()) {
     char k = myFile.read();
-    if(k == '\n' || k == '\r') {
+    if(k == '\r') {
       if(temp == givenString) {   //if line on SD equals the given string, close file and return true
         myFile.close();
         return true;
@@ -478,7 +545,8 @@ bool checkSDForString(String fileName, String givenString) {
       temp = "";  //clear temp for next line
     }
     else {
-      temp += k;
+      if(k != '\n')
+        temp += k;
     }
   }
   myFile.close();   //close file
