@@ -8,6 +8,7 @@
 
 char def_ssid[] = secret_ssid;         //network SSID
 char def_pass[] = secret_pass;       //network password
+char def_user[] = secret_user;       //user name for enterprise
 int keyIndex = 0;                   //network key Index number (needed only for WEP)
 int status = WL_IDLE_STATUS;        //connection status
 WiFiServer server(80);              //server socket
@@ -25,6 +26,7 @@ bool IPSetup = false;               //indicates if system has been setup by auth
 bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
 bool CardManage = false;            //indicates card management mode
+bool Enterprise = true;            //indicates if using enterprise network
  
 void setup() 
 {
@@ -261,8 +263,9 @@ void connect_WiFi() {
   while (status != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(def_ssid);
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(def_ssid, def_pass);
+    // Connect to network differently depending on Enterprise connection
+    if (! Enterprise) status = WiFi.begin(def_ssid, def_pass);
+    else status = WiFi.beginEnterprise(def_ssid, def_user, def_pass);
 
     // wait 10 seconds for connection:
     delay(10000);
