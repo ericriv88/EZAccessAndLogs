@@ -11,7 +11,6 @@
     <ul>\
       <li><a href=\"/Register\">Register New Card</a></li>\
       <li><a href=\"/Manage\">Manage Registered Cards</a></li>\
-      <li><a href=\"/Logs\">Access Logs</a></li>\
       <li><a href=\"/Change\">Change Username and Password</a></li>\
     </ul>\
   </nav>\
@@ -212,32 +211,6 @@
   </nav>\
   <section>\
     <p><a href=\"/Delete\">Delete All Cards</a></p>\
-    <p><a href=\"/Menu\">Main Menu</a></p>\
-  </section>\
-  <footer>\
-    <hr>\
-    <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
-  </footer>\
-</body>\
-</html>"
-
-#define HTML_LogAccessA "<!DOCTYPE html>\
-<html>\
-<head>\
-  <title>EZ Access and Logs</title>\
-</head>\
-<body>\
-  <header>\
-    <h1>EZ Access and Logs</h1>\
-    <h2>Log Access</h2>\
-  </header>\
-  <nav>\
-    <ul>"
-      
-#define HTML_LogAccessB "</ul>\
-  </nav>\
-  <section>\
-    <p><a href=\"/LDelete\">Delete All Logs</a></p>\
     <p><a href=\"/Menu\">Main Menu</a></p>\
   </section>\
   <footer>\
