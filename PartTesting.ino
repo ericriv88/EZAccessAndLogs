@@ -2,7 +2,9 @@
 #include <MFRC522.h>
 #include <LiquidCrystal_I2C.h>
 #include <WiFiNINA.h>
+#include <WiFiUdp.h>
 #include <SD.h>
+#include <RTCZero.h>
 #include "arduino_secrets.h"
 #include "HTML.h"
 
@@ -15,6 +17,8 @@ WiFiServer server(80);              //server socket
 IPAddress ip;                       //global variable for ip address
 
 WiFiClient client = server.available();
+
+RTCZero rtc;                        //Create RTC instance
  
 #define SS_PIN 7                    //Define SDA and RST pins for MFRC522 connection
 #define RST_PIN 6
@@ -26,7 +30,10 @@ bool IPSetup = false;               //indicates if system has been setup by auth
 bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
 bool CardManage = false;            //indicates card management mode
-bool Enterprise = true;            //indicates if using enterprise network
+bool LogAccess = false;
+
+
+bool Enterprise = false;            //indicates if using enterprise network
  
 void setup() 
 {
@@ -76,6 +83,12 @@ void setup()
     lcd.setCursor(0,0);
     lcd.print(ip);
   }
+
+  rtc.begin();            //set up RTC
+  unsigned long epoch;    //get time and date from web
+  epoch = WiFi.getTime();
+  rtc.setEpoch(epoch);    //set RTC instance to proper start time and date
+
 }
 
 void loop() 
@@ -123,6 +136,9 @@ void UIDAccess()
     lcd.print("Access");
     lcd.setCursor(4,1); 
     lcd.print("Granted");
+
+    writeSDLine("LOGS.txt", (DateandTime() + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", content.substring(1))) + " -- Access Granted"));
+
     delay(5000);
     lcd.clear();
     lcd.setCursor(4,0); 
@@ -137,7 +153,10 @@ void UIDAccess()
     lcd.print("Access");
     lcd.setCursor(4,1);
     lcd.print("Denied");
-    delay(4000);
+    
+    writeSDLine("LOGS.txt", (DateandTime() + " -- Unknown User -- Access Denied"));
+
+    delay(5000);
     lcd.clear();
     lcd.setCursor(4,0);
     lcd.print("EZ Access");
@@ -347,6 +366,15 @@ void printWEB() {
                 }
                 client.print(HTML_CardManageB);
               }
+              else if(LogAccess) {
+                client.print(HTML_LogAccessA);   //send log access HTML code
+                for(int i = 1; i <= SDLineCount("LOGS.txt"); i++) {    //which requires all logs to be printed as list items 
+                client.print("<li>");
+                client.print(readSDLine("LOGS.txt", i));
+                client.print("</li>");
+                }
+                client.print(HTML_LogAccessB);
+              }
               else {
                 client.print(HTML_HomePage);  //send HTML of home page if logged in
               }
@@ -379,15 +407,22 @@ void printWEB() {
         if (currentLine.endsWith("GET /Manage") && IPConnect) {
           CardManage = true;    //indicates card management request
         }
+        if (currentLine.endsWith("GET /Logs") && IPConnect) {
+          LogAccess = true;    //indicates log access request
+        }
         if (currentLine.endsWith("GET /Delete") && IPConnect) {
-          whipeSDFile("UID.txt");  //Delete all UIDs and nicknames from the SD  
-          whipeSDFile("NAME.txt");   
+          wipeSDFile("UID.txt");  //Delete all UIDs and nicknames from the SD  
+          wipeSDFile("NAME.txt");   
+        }
+        if (currentLine.endsWith("GET /LDelete") && IPConnect) {
+          wipeSDFile("LOGS.txt"); //Delete all Logs from SD
         }
         if (currentLine.endsWith("GET /Reset") && IPConnect) {
           overWriteSDBool("SET.txt", false); //Reset all settings and logout
           overWriteSD("LOGIN.txt", default_login);
-          whipeSDFile("UID.txt");
-          whipeSDFile("NAME.txt");
+          wipeSDFile("UID.txt");
+          wipeSDFile("NAME.txt");
+          wipeSDFile("LOGS.txt");
           IPSetup = false;
           IPConnect = false;
           lcd.clear();          //show IP address on LCD
@@ -410,7 +445,8 @@ void printWEB() {
           }
         }
         if (currentLine.endsWith("GET /Menu") && IPConnect) {   //need this for going back to main page from card management
-          CardManage = false;     
+          CardManage = false;
+          LogAccess = false;     
         }
       }
     }
@@ -553,7 +589,31 @@ bool checkSDForString(String fileName, String givenString) {
     }
   }
   myFile.close();   //close file
-  return false;      //retuern the empty string if defined line is empty
+  return false;      //return false if string not found
+}
+
+int findSDStringLine(String fileName, String givenString) {
+  if(! checkSDForString(fileName, givenString)) return 0;  //return 0 if string is not found
+  //if string is found find the line number
+  File myFile;                //file variable declaration
+  myFile = SD.open(fileName); //opens .txt file specified by fileName
+  String temp = "";
+  int line = 1;
+  while (myFile.available()) {
+    char k = myFile.read();
+    if(k == '\r') {
+      if(temp == givenString) {   //if the string is found, return its line
+        myFile.close();
+        return line;
+      }
+      temp = "";  //clear temp for next line
+      line++;     //increment line
+    }
+    else {
+      if(k != '\n')
+        temp += k;
+    }
+  }
 }
 
 void overWriteSD(String fileName, String content)
@@ -573,9 +633,35 @@ void writeSDLine(String fileName, String content)
   myFile.close();
 }
 
-void whipeSDFile(String fileName) {
+void wipeSDFile(String fileName) {
   File myFile;          //file varriable for SD card use
   SD.remove(fileName);  //delete file 
   myFile = SD.open(fileName, FILE_WRITE);   //recreate file
   myFile.close();       //close file
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+//***********************RTC Functions***********************************///
+////////////////////////////////////////////////////////////////////////////
+
+String DateandTime()  //returns the date and time in string format
+{
+  String ret = "";
+  ret = String(rtc.getMonth()) + "/" + String(rtc.getDay()) + "/" + String(rtc.getYear()) + " ";
+  int hours = rtc.getHours() - 7;      //convert hours to PST
+  if(hours < 0) hours = hours + 24;   //if hour happens to be negative bring it back to actual value
+  if(hours < 10) {
+    ret += "0";
+  }
+  ret += String(hours) + ":";
+  if(rtc.getMinutes() < 10) {
+    ret += "0";
+  }
+  ret += String(rtc.getMinutes()) + ":";
+  if(rtc.getSeconds() < 10) {
+    ret += "0";
+  }
+  ret += String(rtc.getSeconds());
+  return ret;
 }
