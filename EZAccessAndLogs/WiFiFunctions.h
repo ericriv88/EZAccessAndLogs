@@ -8,6 +8,8 @@ char def_user[] = secret_user;       //user name for enterprise from secrets
 int keyIndex = 0;                   //network key Index number (needed only for WEP)
 int status = WL_IDLE_STATUS;        //connection status
 
+IPAddress savedIP = IPAddress(0,0,0,0); //initialize IP varriable for securing web connections
+
 bool IPConnect = false;             //indicates when authorized client connected to server
 bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
@@ -76,6 +78,14 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
 
   if (client) {                             // if you get a client,
     Serial.println("new client");           // print a message out the serial port
+    Serial.print("client ip: ");           // print clients ip address
+    Serial.println(client.remoteIP());
+
+    if(savedIP != IPAddress(0,0,0,0) && savedIP != client.remoteIP()){    //if no saved IP then save one
+      IPConnect = false;
+      savedIP = IPAddress(0,0,0,0);   //clear savedIP
+    }
+
     String currentLine = "";                // make a String to hold incoming data from the client
     bool postData = false;
     while (client.connected()) {            // loop while the client's connected
@@ -95,6 +105,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 if (postBody == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
                   IPConnect = true;
                   *IPSetup = true;
+                  savedIP = client.remoteIP();      //save ip of logged in client
                   overWriteSDBool("SET.txt", true); //overwrite file in SD card 
                   lcd.clear();
                   lcd.setCursor(4,0); 
@@ -206,12 +217,14 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           wipeSDFile("LOGS.txt");
           *IPSetup = false;
           IPConnect = false;
+          savedIP = IPAddress(0,0,0,0);   //clear savedIP
           lcd.clear();          //show IP address on LCD
           lcd.setCursor(0,0);
           lcd.print(ip);    
         }
         if (currentLine.endsWith("GET /Logout") && IPConnect) {
           IPConnect = false;    //logout so that no changes can be made to access list
+          savedIP = IPAddress(0,0,0,0);   //clear savedIP
         }
         if (currentLine.endsWith("GET /Change") && IPConnect) {
           CredChange = true;    //indicates credential change

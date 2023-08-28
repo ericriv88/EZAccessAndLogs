@@ -14,6 +14,7 @@ IPAddress ip;                       //global variable for ip address
 WiFiServer server(80);              //server socket
 WiFiClient client = server.available();
 
+
 RTCZero rtc;                        //Create RTC instance
  
 #define SS_PIN 7                    //Define SDA and RST pins for MFRC522 connection
@@ -98,7 +99,7 @@ void loop()
 
 
 ////////////////////////////////////////////////////////////////////////////
-//********************Button Function************************************///
+//********************Button ISR Function********************************///
 ////////////////////////////////////////////////////////////////////////////
 void button() {
   lcd.clear();          //show IP address on LCD
