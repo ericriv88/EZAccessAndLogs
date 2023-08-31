@@ -5,9 +5,9 @@
 #include <WiFiUdp.h>
 #include <SD.h>
 #include <RTCZero.h>
+#include "UIDFunctions.h"
 #include "arduino_secrets.h"
 #include "HTML.h"
-#include "UIDFunctions.h"
 #include "WiFiFunctions.h"
 
 IPAddress ip;                       //global variable for ip address

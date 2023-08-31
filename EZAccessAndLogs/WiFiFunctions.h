@@ -102,7 +102,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
             if (postData) {
               String postBody = client.readString();
               if(!CredChange && !CardRegister && !CardManage && !LogAccess) {
-                if (postBody == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
+                if (toHash(postBody) == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
                   IPConnect = true;
                   *IPSetup = true;
                   savedIP = client.remoteIP();      //save ip of logged in client
@@ -115,7 +115,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 }
               }
               else if(CredChange){      //indicates a credential change
-                overWriteSD("LOGIN.txt", postBody); //overwrite credential in SD
+                overWriteSDHash("LOGIN.txt", postBody); //overwrite credential in SD
                 CredChange = false;
               }
               else {        //indicates card register
@@ -211,7 +211,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
         }
         if (currentLine.endsWith("GET /Reset") && IPConnect) {
           overWriteSDBool("SET.txt", false); //Reset all settings and logout
-          overWriteSD("LOGIN.txt", default_login);
+          overWriteSDHash("LOGIN.txt", default_login);
           wipeSDFile("UID.txt");
           wipeSDFile("NAME.txt");
           wipeSDFile("LOGS.txt");

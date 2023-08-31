@@ -2,6 +2,8 @@
 //************************SD Functions***********************************///
 ////////////////////////////////////////////////////////////////////////////
 
+#include "HashFunctions.h"
+
 bool readSDBool(String fileName) {
   File myFile;                        //file varriable for SD card use
   myFile = SD.open(fileName);        //opens .txt file specified by fileName
@@ -81,6 +83,15 @@ void overWriteSD(String fileName, String content)
   SD.remove(fileName);  //delete file for overwrite
   myFile = SD.open(fileName, FILE_WRITE);
   myFile.println(content);
+  myFile.close();
+}
+
+void overWriteSDHash(String fileName, String content)
+{
+  File myFile;          //file varriable for SD card use
+  SD.remove(fileName);  //delete file for overwrite
+  myFile = SD.open(fileName, FILE_WRITE);
+  myFile.println(toHash(content));
   myFile.close();
 }
 
@@ -186,3 +197,12 @@ void writeSDLine(String fileName, String content)
   myFile.println(content);
   myFile.close();
 }
+
+void writeSDHashLine(String fileName, String content)
+{
+  File myFile;          //file varriable for SD card use
+  myFile = SD.open(fileName, FILE_WRITE);
+  myFile.println(toHash(content));
+  myFile.close();
+}
+

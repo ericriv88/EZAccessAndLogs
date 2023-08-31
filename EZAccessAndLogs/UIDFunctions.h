@@ -30,16 +30,15 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
   Serial.println();
   content.toUpperCase();
   //Check if presented UID is valid
-  if (checkSDForString("UID.txt", content.substring(1))) //if UID is valid
+  if (checkSDForString("UID.txt", toHash(content.substring(1)))) //if UID is valid
   {
     lcd.clear();
     lcd.setCursor(4,0);
     lcd.print("Access");
     lcd.setCursor(4,1); 
     lcd.print("Granted");
-
-    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", content.substring(1))) + " -- Access Granted"));
-
+    //Log the access
+    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(content.substring(1)))) + " -- Access Granted"));
     delay(5000);
     lcd.clear();
     lcd.setCursor(4,0); 
@@ -54,9 +53,8 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     lcd.print("Access");
     lcd.setCursor(4,1);
     lcd.print("Denied");
-    
+    //Log the access
     writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- Unknown User -- Access Denied"));
-
     delay(5000);
     lcd.clear();
     lcd.setCursor(4,0);
@@ -100,7 +98,7 @@ void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister)
   content.toUpperCase();
 
   if(!checkSDForString("UID.txt", content.substring(1))) {  //write UID to SD if not already there
-    writeSDLine("UID.txt", content.substring(1));
+    writeSDHashLine("UID.txt", content.substring(1));
     *CardRegister = true;    //ensures proper page is shown on web
     lcd.clear();
     lcd.setCursor(4,0);
