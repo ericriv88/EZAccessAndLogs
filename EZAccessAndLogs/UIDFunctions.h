@@ -97,7 +97,7 @@ void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister)
   }
   content.toUpperCase();
 
-  if(!checkSDForString("UID.txt", content.substring(1))) {  //write UID to SD if not already there
+  if(!checkSDForString("UID.txt", toHash(content.substring(1)))) {  //write UID to SD if not already there
     writeSDHashLine("UID.txt", content.substring(1));
     *CardRegister = true;    //ensures proper page is shown on web
     lcd.clear();
