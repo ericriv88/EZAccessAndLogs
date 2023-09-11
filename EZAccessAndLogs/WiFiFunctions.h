@@ -115,7 +115,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 }
               }
               else if(CredChange){      //indicates a credential change
-                overWriteSDHash("LOGIN.txt", postBody); //overwrite credential in SD
+                overWriteSDHash("LOGIN.txt", postBody); //overwrite hashed credential in SD
                 CredChange = false;
               }
               else {        //indicates card register

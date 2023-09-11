@@ -126,7 +126,7 @@
     <hr>\
     <p>\
       <label for=\"userName\">New User Name:</label>\
-      <input type=\"text\" name=\"userName\" id=\"userName\" placeholder=\"User\" autocomplete=\"on\" required autofocus>\
+      <input type=\"text\" name=\"userName\" id=\"userName\" placeholder=\"User\" autocomplete=\"off\" required autofocus>\
     </p>\
     <p>\
       <label for=\"password\">New Password:</label>\
