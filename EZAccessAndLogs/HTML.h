@@ -147,6 +147,10 @@
 <head>\
   <title>EZ Access and Logs</title>\
   <style>\
+    .center {\
+    text-align: center;\
+    color: red;\
+    }\
     body {\
       display: flex;\
       flex-direction: column;\
@@ -188,6 +192,23 @@
     <br>\
     <button type=\"submit\">Register</button>\
   </form>\
+  <footer>\
+    <hr>\
+    <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
+  </footer>\
+</body>\
+</html>"
+
+#define HTML_CardRegisterDupeB "\" method=\"post\">\
+    <hr>\
+    <p>\
+      <label for=\"name\">NickName:</label>\
+      <input type=\"text\" name=\"name\" id=\"name\" placeholder=\"Bob\" autocomplete=\"off\" required autofocus>\
+    </p>\
+    <br>\
+    <button type=\"submit\">Register</button>\
+  </form>\
+  <p class=\"center\">Enter unique Nick Name</p>\
   <footer>\
     <hr>\
     <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\

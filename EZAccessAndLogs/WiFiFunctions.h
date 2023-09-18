@@ -15,6 +15,7 @@ bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
 bool CardManage = false;            //indicates card management mode
 bool LogAccess = false;
+bool DupeName = false;              //used to display different HTML when duplicate nickname entered at card register
 
 void printWifiStatus(IPAddress* ip) {
   //print the SSID of the network attached to:
@@ -123,9 +124,12 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 for(int i = 5; i < postBody.length(); i++) {    //get only the nickname from the postBody
                   nickName += postBody[i];
                 }
-                //*** NEED TO CHECK FOR REAPEATS ***///
-                writeSDLine("NAME.txt", nickName);  //write nickname to SD
-                CardRegister = false;
+                if(!checkSDForString("NAME.txt",nickName)) {     //if nickName is not a repeat
+                  writeSDLine("NAME.txt", nickName);  //write nickname to SD
+                  CardRegister = false;
+                  DupeName = false;
+                }
+                else DupeName = true;
               }
             }
 
@@ -145,7 +149,8 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               else if (CardRegister) {
                 client.print(HTML_CardRegisterA);   //send card register HTML code
                 client.print(ip);                  //which requires ip address
-                client.print(HTML_CardRegisterB);
+                if(!DupeName) client.print(HTML_CardRegisterB);
+                else client.print(HTML_CardRegisterDupeB);
               }
               else if (CardManage) {
                 client.print(HTML_CardManageA);   //send card manage HTML code
