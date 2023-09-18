@@ -8,13 +8,13 @@
 #define HASH_SIZE 32
 
 String toHash(String in) {
-  String ret;                     //initialize return string
-  uint8_t result[HASH_SIZE];      //create buffer for resulting hash
-  SHA256 sha256;                  //create sha256 instance and update with input and hash size
-  sha256.update(in.c_str(), sizeof(in));
-  sha256.finalize(result, HASH_SIZE);
-  for(int i = 0; i < HASH_SIZE; i++) {  //convert resulting buffer into string 
-    ret += result[i];
+  String ret;
+  uint8_t result[HASH_SIZE];
+  SHA256 sha256;              //initialize sha256 algorithm
+  sha256.update(in.c_str(), in.length()); // Use the correct length of the input string
+  sha256.finalize(result, HASH_SIZE);     //compute the hash
+  for (int i = 0; i < HASH_SIZE; i++) {
+    ret += String(result[i], HEX); // Convert the result to a hexadecimal string
   }
   sha256.reset();
   return ret;
