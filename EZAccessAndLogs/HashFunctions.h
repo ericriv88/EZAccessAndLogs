@@ -14,7 +14,9 @@ String toHash(String in) {
   sha256.update(in.c_str(), in.length()); // Use the correct length of the input string
   sha256.finalize(result, HASH_SIZE);     //compute the hash
   for (int i = 0; i < HASH_SIZE; i++) {
-    ret += String(result[i], HEX); // Convert the result to a hexadecimal string
+    String temp = String(result[i], HEX);
+    if(temp.length() == 1) temp = "0" + temp; //add leading zero for given byte if needed
+    ret += temp; // Convert the result to a hexadecimal string
   }
   sha256.reset();
   return ret;
