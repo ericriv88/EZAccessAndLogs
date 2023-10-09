@@ -149,6 +149,10 @@
 <head>\
   <title>EZ Access and Logs</title>\
   <style>\
+    .center {\
+    text-align: center;\
+    color: red;\
+    }\
     body {\
       display: flex;\
       flex-direction: column;\
@@ -194,6 +198,27 @@
     <br>\
     <button type=\"submit\">Submit</button>\
   </form>\
+  <footer>\
+    <hr>\
+    <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
+  </footer>\
+</body>\
+</html>"
+
+#define HTML_NewUserDupeB "\" method=\"post\">\
+    <hr>\
+    <p>\
+      <label for=\"userName\">New User Name:</label>\
+      <input type=\"text\" name=\"userName\" id=\"userName\" placeholder=\"User\" autocomplete=\"off\" required autofocus>\
+    </p>\
+    <p>\
+      <label for=\"password\">New Password:</label>\
+      <input type=\"password\" name=\"password\" id=\"password\" placeholder=\"Secret\" required>\
+    </p>\
+    <br>\
+    <button type=\"submit\">Submit</button>\
+  </form>\
+  <p class=\"center\">Invalid User Credentials</p>\
   <footer>\
     <hr>\
     <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
@@ -267,7 +292,7 @@
     <br>\
     <button type=\"submit\">Register</button>\
   </form>\
-  <p class=\"center\">Enter unique Nick Name</p>\
+  <p class=\"center\">Enter Unique Nick Name</p>\
   <footer>\
     <hr>\
     <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\

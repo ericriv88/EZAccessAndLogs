@@ -17,6 +17,7 @@ bool CardManage = false;            //indicates card management mode
 bool UserManage = false;            //indicates user management mode
 bool LogAccess = false;
 bool DupeName = false;              //used to display different HTML when duplicate nickname entered at card register
+bool DupeUser = false;              //used to display different HTML when duplicate credentials entered at user register
 bool NewUser = false;               //indicates new user register function
 
 void printWifiStatus(IPAddress* ip) {
@@ -139,9 +140,13 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                   nickName += postBody[i];
                   i++;
                 }
-                writeSDLine("LIST.txt", nickName);
-                writeSDHashLine("USERS.txt", postBody); //
-                NewUser = false;
+                if(!checkSDForString("LIST.txt", nickName) && !checkSDForString("LOGIN.txt", toHash(postBody))) { //only add user if it does not conflict with other users and admin
+                  writeSDLine("LIST.txt", nickName);                                                              //credentials
+                  writeSDHashLine("USERS.txt", postBody);
+                  NewUser = false;
+                  DupeUser = false;
+                }
+                else DupeUser = true;
               }
               else {        //indicates card register
                 String nickName;
@@ -167,7 +172,8 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               else if (NewUser) {
                 client.print(HTML_NewUserA);
                 client.print(ip);
-                client.print(HTML_NewUserB);
+                if(!DupeUser) client.print(HTML_NewUserB);
+                else client.print(HTML_NewUserDupeB);
               }
               else if (CardRegister) {
                 client.print(HTML_CardRegisterA);   //send card register HTML code
