@@ -14,8 +14,10 @@ bool IPConnect = false;             //indicates when authorized client connected
 bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
 bool CardManage = false;            //indicates card management mode
+bool UserManage = false;            //indicates user management mode
 bool LogAccess = false;
 bool DupeName = false;              //used to display different HTML when duplicate nickname entered at card register
+bool NewUser = false;               //indicates new user register function
 
 void printWifiStatus(IPAddress* ip) {
   //print the SSID of the network attached to:
@@ -102,7 +104,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
             //if there is post data then serial print it
             if (postData) {
               String postBody = client.readString();
-              if(!CredChange && !CardRegister && !CardManage && !LogAccess) {
+              if(!CredChange && !CardRegister && !CardManage && !LogAccess && !NewUser) {
                 if (toHash(postBody) == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
                   IPConnect = true;
                   *IPSetup = true;
@@ -114,10 +116,32 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                   lcd.setCursor(4,1);
                   lcd.print("And Logs");
                 }
+                else if (checkSDForString("USERS.txt", toHash(postBody))) {
+                  savedIP = client.remoteIP();
+                  LogAccess = true;    //indicates log access request
+                  client.print(HTML_LogAccessA);   //send log access HTML code
+                  for(int i = 1; i <= SDLineCount("LOGS.txt"); i++) {    //which requires all logs to be printed as list items 
+                    client.print("<li>");
+                    client.print(readSDLine("LOGS.txt", i));
+                    client.print("</li>");
+                  }
+                  client.print(HTML_UserLogAccessB);
+                }
               }
               else if(CredChange){      //indicates a credential change
                 overWriteSDHash("LOGIN.txt", postBody); //overwrite hashed credential in SD
                 CredChange = false;
+              }
+              else if(NewUser) {      //indicates new user credientials
+                String nickName;
+                int i = 9;
+                while(postBody[i] != '&') {    //get only the name from the postBody
+                  nickName += postBody[i];
+                  i++;
+                }
+                writeSDLine("LIST.txt", nickName);
+                writeSDHashLine("USERS.txt", postBody); //
+                NewUser = false;
               }
               else {        //indicates card register
                 String nickName;
@@ -133,18 +157,17 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               }
             }
 
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println();
-           
             //create the buttons
-            if (IPConnect) {  //if the system is activated send either credential change or home page HTML code
+            if (IPConnect) {  //if the system is activated send the right HTML code
               if (CredChange) {
                 client.print(HTML_CredChangeA);   //send credential change HTML code
                 client.print(ip);               //which requires ip address
                 client.print(HTML_CredChangeB);
+              }
+              else if (NewUser) {
+                client.print(HTML_NewUserA);
+                client.print(ip);
+                client.print(HTML_NewUserB);
               }
               else if (CardRegister) {
                 client.print(HTML_CardRegisterA);   //send card register HTML code
@@ -155,13 +178,24 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               else if (CardManage) {
                 client.print(HTML_CardManageA);   //send card manage HTML code
                 for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {    //which requires all nicknames be printed between as anchors giving option to delete
-                client.print("<li><a href=\"/");
+                client.print("<li><a href=\"/CD");
                 client.print(i);
                 client.print("\">Delete ");
                 client.print(readSDLine("NAME.txt", i));
                 client.print("</a></li>");
                 }
                 client.print(HTML_CardManageB);
+              }
+              else if (UserManage) {
+                client.print(HTML_UserManageA);   //send card manage HTML code
+                for(int i = 1; i <= SDLineCount("LIST.txt"); i++) {    //which requires all nicknames be printed between as anchors giving option to delete
+                client.print("<li><a href=\"/UD");
+                client.print(i);
+                client.print("\">Delete ");
+                client.print(readSDLine("LIST.txt", i));
+                client.print("</a></li>");
+                }
+                client.print(HTML_UserManageB);
               }
               else if(LogAccess) {
                 client.print(HTML_LogAccessA);   //send log access HTML code
@@ -177,7 +211,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               }
             }
 
-            else {      //if system is not activated
+            else if(!LogAccess) {      //if system is not activated and user not logged in 
               client.print(HTML_LoginA);   //send longin HTML code
               client.print(ip);               //which requires ip address
               client.print(HTML_LoginB);
@@ -204,6 +238,9 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
         if (currentLine.endsWith("GET /Manage") && IPConnect) {
           CardManage = true;    //indicates card management request
         }
+        if (currentLine.endsWith("GET /UserMan") && IPConnect) {
+          UserManage = true;    //indicates user management request
+        }
         if (currentLine.endsWith("GET /Logs") && IPConnect) {
           LogAccess = true;    //indicates log access request
         }
@@ -211,12 +248,18 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           wipeSDFile("UID.txt");  //Delete all UIDs and nicknames from the SD  
           wipeSDFile("NAME.txt");   
         }
+        if (currentLine.endsWith("GET /UserD") && IPConnect) {
+          wipeSDFile("LIST.txt");  //Delete all usernames and user hashes from the SD  
+          wipeSDFile("USERS.txt");   
+        }
         if (currentLine.endsWith("GET /LDelete") && IPConnect) {
           wipeSDFile("LOGS.txt"); //Delete all Logs from SD
         }
         if (currentLine.endsWith("GET /Reset") && IPConnect) {
           overWriteSDBool("SET.txt", false); //Reset all settings and logout
           overWriteSDHash("LOGIN.txt", default_login);
+          wipeSDFile("USERS.txt");
+          wipeSDFile("LIST.txt");
           wipeSDFile("UID.txt");
           wipeSDFile("NAME.txt");
           wipeSDFile("LOGS.txt");
@@ -231,21 +274,39 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           IPConnect = false;    //logout so that no changes can be made to access list
           savedIP = IPAddress(0,0,0,0);   //clear savedIP
         }
+        if (currentLine.endsWith("GET /Logout") && LogAccess) { //logout from a user login
+          IPConnect = false;    //logout so that no changes can be made to access list
+          savedIP = IPAddress(0,0,0,0);   //clear savedIP
+          LogAccess = false;
+        }
         if (currentLine.endsWith("GET /Change") && IPConnect) {
           CredChange = true;    //indicates credential change
         }
+        if (currentLine.endsWith("GET /New") && IPConnect) {
+          NewUser = true;       //indicates new user registration
+        }
         if(IPConnect && CardManage) {
           for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {   //check if any of the cards are trying to be deleted
-            String cardDelete = "GET /" + String(i);
+            String cardDelete = "GET /CD" + String(i);
             if(currentLine.endsWith(cardDelete)) {
               deleteSDLine("NAME.txt", i);    //delete nickanme and UID from files
               deleteSDLine("UID.txt", i);
             }
           }
         }
-        if (currentLine.endsWith("GET /Menu") && IPConnect) {   //need this for going back to main page from card management
+        if(IPConnect && UserManage) {
+          for(int i = 1; i <= SDLineCount("LIST.txt"); i++) {   //check if any of the users are trying to be deleted
+            String userDelete = "GET /UD" + String(i);
+            if(currentLine.endsWith(userDelete)) {
+              deleteSDLine("LIST.txt", i);    //delete user and user hash from files
+              deleteSDLine("USERS.txt", i);
+            }
+          }
+        }
+        if (currentLine.endsWith("GET /Menu") && IPConnect) {   //need this for going back to main page from given pages
           CardManage = false;
-          LogAccess = false;     
+          LogAccess = false;
+          UserManage = false;    
         }
       }
     }
