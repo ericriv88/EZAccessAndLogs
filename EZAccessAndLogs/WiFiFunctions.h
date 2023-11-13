@@ -239,7 +239,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
 
         //Check for all anchor text presses
         if (currentLine.endsWith("GET /Register") && IPConnect) {
-          newCardRegister(mfrc522, lcd, &CardRegister);  //Register new card and make it the ValidUID      
+          newCardRegister(mfrc522, lcd, &CardRegister, 0);  //Register new card      
         }
         if (currentLine.endsWith("GET /Manage") && IPConnect) {
           CardManage = true;    //indicates card management request
@@ -269,6 +269,12 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           wipeSDFile("UID.txt");
           wipeSDFile("NAME.txt");
           wipeSDFile("LOGS.txt");
+          String readerCount = readSDLine("RCOUNT.txt", 1);   //delete all reader UID files
+          for(int i = 1; i <= readerCount.toInt(); i++) {
+            String UIDFile = "READERS/UID" + String(i) + ".txt";
+            deleteSDFile(UIDFile);
+          }
+          overWriteSD("RCOUNT.txt", "0");     //reset reader count
           *IPSetup = false;
           IPConnect = false;
           savedIP = IPAddress(0,0,0,0);   //clear savedIP

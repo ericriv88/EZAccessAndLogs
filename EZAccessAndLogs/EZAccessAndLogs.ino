@@ -9,6 +9,7 @@
 #include "arduino_secrets.h"
 #include "HTML.h"
 #include "WiFiFunctions.h"
+#include "BLE_Peripheral.h"
 
 IPAddress ip;                       //global variable for ip address
 WiFiServer server(80);              //server socket
@@ -31,6 +32,8 @@ bool Enterprise = false;            //indicates if using enterprise network
 void setup() 
 {
   Serial.begin(9600);   // Initiate a serial communication
+  delay(500);           //delay for serial coms
+
 
   lcd.init();       //Initiate LCD
   lcd.clear();         
@@ -84,7 +87,6 @@ void setup()
 
   pinMode(interruptPin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(interruptPin), button, FALLING); //on button press show ip on LCD
-
 }
 
 void loop() 

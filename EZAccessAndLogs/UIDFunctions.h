@@ -64,7 +64,7 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
   }
 }
 
-void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister) {
+void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister, int readerNumber) {
   lcd.clear();
   lcd.setCursor(4,0);
   lcd.print("Present");
@@ -97,8 +97,14 @@ void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister)
   }
   content.toUpperCase();
 
-  if(!checkSDForString("UID.txt", toHash(content.substring(1)))) {  //write UID to SD if not already there
-    writeSDHashLine("UID.txt", content.substring(1));
+  String UIDFile;           //file name to add UID hash to
+  if(readerNumber != 0)     //if not the hub reader
+    UIDFile = "READERS/UID" + String(readerNumber) + ".txt";
+  else
+    UIDFile = "UID.txt";    //else is the hub reader
+
+  if(!checkSDForString(UIDFile, toHash(content.substring(1)))) {  //write UID to SD if not already there
+    writeSDHashLine(UIDFile, content.substring(1));
     *CardRegister = true;    //ensures proper page is shown on web
     lcd.clear();
     lcd.setCursor(4,0);

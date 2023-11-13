@@ -9,7 +9,7 @@
   </header>\
   <nav>\
     <ul>\
-      <li><a href=\"/Register\">Register New Card</a></li>\
+      <li><a href=\"/Register\">Register New Card to Hub</a></li>\
       <li><a href=\"/Manage\">Manage Registered Cards</a></li>\
       <li><a href=\"/Logs\">Access Logs</a></li>\
       <li><a href=\"/New\">Register New User</a></li>\

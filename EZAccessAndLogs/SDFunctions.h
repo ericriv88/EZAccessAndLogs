@@ -206,3 +206,14 @@ void writeSDHashLine(String fileName, String content)
   myFile.close();
 }
 
+void createSDFile(String fileName)
+{
+  File myFile;          //file varriable for SD card use
+  myFile = SD.open(fileName, FILE_WRITE);
+  myFile.close();
+}
+
+void deleteSDFile(String fileName) {
+  SD.remove(fileName);  //delete file 
+}
+
