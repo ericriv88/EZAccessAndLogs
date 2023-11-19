@@ -9,6 +9,7 @@
   </header>\
   <nav>\
     <ul>\
+      <li><a href=\"/ReaderAdd\">Register Additional Reader</a></li>\
       <li><a href=\"/Register\">Register New Card to Hub</a></li>\
       <li><a href=\"/Manage\">Manage Registered Cards</a></li>\
       <li><a href=\"/Logs\">Access Logs</a></li>\
@@ -21,6 +22,44 @@
     <p><a href=\"/Logout\">Logout</a></p>\
     <p><a href=\"/Reset\">Reset and Logout</a> - This will reset ALL settings</p>\
   </section>\
+  <footer>\
+    <hr>\
+    <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
+  </footer>\
+</body>\
+</html>"
+
+#define HTML_LogoutPage "<!DOCTYPE html>\
+<html>\
+<head>\
+  <title>EZ Access and Logs</title>\
+</head>\
+<body>\
+  <header>\
+    <h1>EZ Access and Logs</h1>\
+  </header>\
+  <p>You have logged out and tunred off wifi connection</p>\
+  <footer>\
+    <hr>\
+    <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
+  </footer>\
+</body>\
+</html>"
+
+#define HTML_ReaderRegisterA "<!DOCTYPE html>\
+<html>\
+<head>\
+  <title>EZ Access and Logs</title>\
+</head>\
+<body>\
+  <header>\
+    <h1>EZ Access and Logs</h1>\
+  </header>\
+  <p>Reader "
+  
+  
+#define HTML_ReaderRegisterB " has been added to the system</p>\
+<p><a href=\"/Menu\">Main Menu</a></p>\
   <footer>\
     <hr>\
     <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\

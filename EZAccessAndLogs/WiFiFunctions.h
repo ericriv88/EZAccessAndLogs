@@ -13,12 +13,14 @@ IPAddress savedIP = IPAddress(0,0,0,0); //initialize IP varriable for securing w
 bool IPConnect = false;             //indicates when authorized client connected to server
 bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
+bool ReaderRegister = false;        //indicates that a reader is being registered
 bool CardManage = false;            //indicates card management mode
 bool UserManage = false;            //indicates user management mode
 bool LogAccess = false;
 bool DupeName = false;              //used to display different HTML when duplicate nickname entered at card register
 bool DupeUser = false;              //used to display different HTML when duplicate credentials entered at user register
 bool NewUser = false;               //indicates new user register function
+bool Logout = false;                //indicates logout
 
 void printWifiStatus(IPAddress* ip) {
   //print the SSID of the network attached to:
@@ -57,6 +59,7 @@ void enable_WiFi(LiquidCrystal_I2C lcd) {
   if (fv < "1.0.0") {
     Serial.println("Please upgrade the firmware");
   }
+  status = WL_IDLE_STATUS;
 }
 
 void connect_WiFi(bool Enterprise, LiquidCrystal_I2C lcd) {
@@ -78,7 +81,7 @@ void connect_WiFi(bool Enterprise, LiquidCrystal_I2C lcd) {
   }
 }
 
-void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress ip, MFRC522 mfrc522) {
+void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress ip, MFRC522 mfrc522, bool* BLESetup) {
 
   if (client) {                             // if you get a client,
     Serial.println("new client");           // print a message out the serial port
@@ -192,6 +195,11 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 }
                 client.print(HTML_CardManageB);
               }
+              else if (ReaderRegister) {
+                client.print(HTML_ReaderRegisterA);
+                client.print(readSDLine("RCOUNT.txt", 1));
+                client.print(HTML_ReaderRegisterB);
+              }
               else if (UserManage) {
                 client.print(HTML_UserManageA);   //send card manage HTML code
                 for(int i = 1; i <= SDLineCount("LIST.txt"); i++) {    //which requires all nicknames be printed between as anchors giving option to delete
@@ -217,14 +225,21 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               }
             }
 
-            else if(!LogAccess) {      //if system is not activated and user not logged in 
+            else if(!LogAccess & !Logout) {      //if system is not activated and user not logged in 
               client.print(HTML_LoginA);   //send longin HTML code
               client.print(ip);               //which requires ip address
               client.print(HTML_LoginB);
             }
+
+            else if(Logout) {
+              Logout = false;
+              *BLESetup = true;
+              client.print(HTML_LogoutPage);  //send HTML of logout page
+            }
             
             // The HTTP response ends with another blank line:
             client.println();
+            delay(500); //delay to properly print to client
             // break out of the while loop:
             break;
           }
@@ -240,6 +255,10 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
         //Check for all anchor text presses
         if (currentLine.endsWith("GET /Register") && IPConnect) {
           newCardRegister(mfrc522, lcd, &CardRegister, 0);  //Register new card      
+        }
+        if (currentLine.endsWith("GET /ReaderAdd") && IPConnect) {
+          BLE_Peripheral_Add_Reader();
+          ReaderRegister = true;     
         }
         if (currentLine.endsWith("GET /Manage") && IPConnect) {
           CardManage = true;    //indicates card management request
@@ -278,18 +297,18 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           *IPSetup = false;
           IPConnect = false;
           savedIP = IPAddress(0,0,0,0);   //clear savedIP
-          lcd.clear();          //show IP address on LCD
-          lcd.setCursor(0,0);
-          lcd.print(ip);    
+          Logout = true;
         }
         if (currentLine.endsWith("GET /Logout") && IPConnect) {
           IPConnect = false;    //logout so that no changes can be made to access list
           savedIP = IPAddress(0,0,0,0);   //clear savedIP
+          Logout = true;
         }
         if (currentLine.endsWith("GET /Logout") && LogAccess) { //logout from a user login
           IPConnect = false;    //logout so that no changes can be made to access list
           savedIP = IPAddress(0,0,0,0);   //clear savedIP
           LogAccess = false;
+          Logout = true;
         }
         if (currentLine.endsWith("GET /Change") && IPConnect) {
           CredChange = true;    //indicates credential change
@@ -318,7 +337,8 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
         if (currentLine.endsWith("GET /Menu") && IPConnect) {   //need this for going back to main page from given pages
           CardManage = false;
           LogAccess = false;
-          UserManage = false;    
+          UserManage = false;
+          ReaderRegister = false;  
         }
       }
     }
