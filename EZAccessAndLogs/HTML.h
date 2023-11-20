@@ -11,7 +11,8 @@
     <ul>\
       <li><a href=\"/ReaderAdd\">Register Additional Reader</a></li>\
       <li><a href=\"/Register\">Register New Card</a></li>\
-      <li><a href=\"/Manage\">Manage Registered Cards</a></li>\
+      <li><a href=\"/CarDel\">Delete Registered Cards</a></li>\
+      <li><a href=\"/CardManage\">Manage Registered Cards</a></li>\
       <li><a href=\"/Logs\">Access Logs</a></li>\
       <li><a href=\"/New\">Register New User</a></li>\
       <li><a href=\"/UserMan\">Manage Registered Users</a></li>\
@@ -337,6 +338,32 @@
 </body>\
 </html>"
 
+#define HTML_CarDelA "<!DOCTYPE html>\
+<html>\
+<head>\
+  <title>EZ Access and Logs</title>\
+</head>\
+<body>\
+  <header>\
+    <h1>EZ Access and Logs</h1>\
+    <h2>Delete Cards</h2>\
+  </header>\
+  <nav>\
+    <ul>"
+      
+#define HTML_CarDelB "</ul>\
+  </nav>\
+  <section>\
+    <p><a href=\"/Delete\">Delete All Cards</a></p>\
+    <p><a href=\"/Menu\">Main Menu</a></p>\
+  </section>\
+  <footer>\
+    <hr>\
+    <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
+  </footer>\
+</body>\
+</html>"
+
 #define HTML_CardManageA "<!DOCTYPE html>\
 <html>\
 <head>\
@@ -347,13 +374,11 @@
     <h1>EZ Access and Logs</h1>\
     <h2>Card Management</h2>\
   </header>\
-  <nav>\
-    <ul>"
+  <form action=\"http://" //cuts off and inserts ip address here in main program
       
-#define HTML_CardManageB "</ul>\
-  </nav>\
+#define HTML_CardManageB "</p><br><br> <button type=\"submit\">Submit</button>\
+  </form>\
   <section>\
-    <p><a href=\"/Delete\">Delete All Cards</a></p>\
     <p><a href=\"/Menu\">Main Menu</a></p>\
   </section>\
   <footer>\

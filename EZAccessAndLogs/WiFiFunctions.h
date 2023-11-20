@@ -16,6 +16,7 @@ bool IPConnect = false;             //indicates when authorized client connected
 bool CredChange = false;            //indicates if credential change is occuring
 bool CardRegister = false;          //indicates that a card is being registered
 bool ReaderRegister = false;        //indicates that a reader is being registered
+bool CarDel = false;                //indicates card deletion mode
 bool CardManage = false;            //indicates card management mode
 bool UserManage = false;            //indicates user management mode
 bool LogAccess = false;
@@ -110,7 +111,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
             //if there is post data then serial print it
             if (postData) {
               String postBody = client.readString();
-              if(!CredChange && !CardRegister && !CardManage && !LogAccess && !NewUser) {
+              if(!CredChange && !CardRegister && !CarDel && !LogAccess && !NewUser && !CardManage) {
                 if (toHash(postBody) == readSDLine("LOGIN.txt", 1)) {    //activate system if POST contents matches the credentials in SD card
                   IPConnect = true;
                   *IPSetup = true;
@@ -185,6 +186,9 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 }
                 else DupeName = true;
               }
+              else if(CardManage) {
+                CardManage = false;
+              }
             }
 
             //create the buttons
@@ -226,8 +230,8 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 if(!DupeName) client.print(HTML_CardRegisterC);
                 else client.print(HTML_CardRegisterDupeC);
               }
-              else if (CardManage) {
-                client.print(HTML_CardManageA);   //send card manage HTML code
+              else if (CarDel) {
+                client.print(HTML_CarDelA);   //send card manage HTML code
                 for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {    //which requires all nicknames be printed between as anchors giving option to delete
                 client.print("<li><a href=\"/CD");
                 client.print(i);
@@ -235,6 +239,45 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 client.print(readSDLine("NAME.txt", i));
                 client.print("</a></li>");
                 }
+                client.print(HTML_CarDelB);
+              }
+              else if(CardManage) {
+                client.print(HTML_CardManageA);
+                client.print(ip);
+                client.print("\" method=\"post\">");
+
+                for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {
+                  client.print("<p>");
+                  String name = readSDLine("NAME.txt", i);
+                  client.print(name);
+                  client.print(": ");
+                  client.print("<input type=\"checkbox\" id=\"");
+                    client.print(name);
+                    client.print("\" name=\"");
+                    client.print(name);
+                    client.print("\" value=\"0\">");  //create check box for hub module
+                    client.print("<label for=\"");
+                    client.print(name);
+                    client.print("\"> Reader Hub  </label>");
+                  String readerCount = readSDLine("RCOUNT.txt", 1);
+                  for(int j = 1; j <= readerCount.toInt(); j++) {
+                    client.print("<input type=\"checkbox\" id=\"");
+                    client.print(name);
+                    client.print("\" name=\"");
+                    client.print(name);
+                    client.print("\" value=\"");
+                    client.print(String(j));
+                    client.print("\">");  //create check box for hub module
+                    client.print("<label for=\"");
+                    client.print(name);
+                    client.print("\"> Reader ");
+                    client.print(String(j));
+                    client.print("  ");
+                    client.print("</label>");
+                  }
+                  client.print("<br>");
+                }
+
                 client.print(HTML_CardManageB);
               }
               else if (ReaderRegister) {
@@ -302,7 +345,10 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           BLE_Peripheral_Add_Reader();
           ReaderRegister = true;     
         }
-        if (currentLine.endsWith("GET /Manage") && IPConnect) {
+        if (currentLine.endsWith("GET /CarDel") && IPConnect) {
+          CarDel = true;    //indicates card delete request
+        }
+        if (currentLine.endsWith("GET /CardManage") && IPConnect) {
           CardManage = true;    //indicates card management request
         }
         if (currentLine.endsWith("GET /UserMan") && IPConnect) {
@@ -364,7 +410,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
         if (currentLine.endsWith("GET /New") && IPConnect) {
           NewUser = true;       //indicates new user registration
         }
-        if(IPConnect && CardManage) {
+        if(IPConnect && CarDel) {
           for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {   //check if any of the cards are trying to be deleted
             String cardDelete = "GET /CD" + String(i);
             if(currentLine.endsWith(cardDelete)) {
@@ -392,10 +438,11 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           }
         }
         if (currentLine.endsWith("GET /Menu") && IPConnect) {   //need this for going back to main page from given pages
-          CardManage = false;
+          CarDel = false;
           LogAccess = false;
           UserManage = false;
           ReaderRegister = false;  
+          CardManage = false;
         }
       }
     }
