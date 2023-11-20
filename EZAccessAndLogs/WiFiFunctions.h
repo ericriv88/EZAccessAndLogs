@@ -312,8 +312,13 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           LogAccess = true;    //indicates log access request
         }
         if (currentLine.endsWith("GET /Delete") && IPConnect) {
-          wipeSDFile("UID.txt");  //Delete all UIDs and nicknames from the SD  
-          wipeSDFile("NAME.txt");   
+          String readerCount = readSDLine("RCOUNT.txt", 1);
+          wipeSDFile("NAME.txt");    //wipe nickname and UID files
+          wipeSDFile("UID.txt");
+          for(int i = 0; i <= readerCount.toInt(); i++) {
+            String fileName = "READERS/UID" + String(i) + ".txt";
+            wipeSDFile(fileName);
+          }   
         }
         if (currentLine.endsWith("GET /UserD") && IPConnect) {
           wipeSDFile("LIST.txt");  //Delete all usernames and user hashes from the SD  
@@ -363,8 +368,17 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {   //check if any of the cards are trying to be deleted
             String cardDelete = "GET /CD" + String(i);
             if(currentLine.endsWith(cardDelete)) {
+              String DelUID = readSDLine("UID.txt", i);
+              String readerCount = readSDLine("RCOUNT.txt", 1);
               deleteSDLine("NAME.txt", i);    //delete nickanme and UID from files
               deleteSDLine("UID.txt", i);
+              for(int i = 0; i <= readerCount.toInt(); i++) {
+                String fileName = "READERS/UID" + String(i) + ".txt";
+                if(checkSDForString(fileName, DelUID)) {
+                  int line = findSDStringLine(fileName, DelUID);
+                  deleteSDLine(fileName, line);
+                }
+              }
             }
           }
         }
