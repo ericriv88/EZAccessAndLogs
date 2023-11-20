@@ -59,12 +59,12 @@ void BLE_Peripheral_Reset_Services() {  //resets BLE and adds file contents to n
   int ReaderCount = RCount.toInt();
   for(int i = 1; i <= ReaderCount; i++) {
     String readerUUID = default_uuid;
-    readerUUID.remove(0,1);
-    readerUUID = String(i, HEX) + readerUUID;
+    readerUUID.remove(0,1);           
+    readerUUID = String(i, HEX) + readerUUID; //set proper UUID for designated reader 
     String fileName = "READERS/UID" + String(i) + ".txt";
-    BLEService service(readerUUID.c_str());
-    addCharacteristicsFromFile(service, fileName);
-    BLE.addService(service);
+    BLEService service(readerUUID.c_str());   //set defualt service UUID to reader UUID
+    addCharacteristicsFromFile(service, fileName);  //add characteristics from corresponding UID file
+    BLE.addService(service);  //add service to BLE service list
   }
 
   BLE.advertise(); // Start advertising

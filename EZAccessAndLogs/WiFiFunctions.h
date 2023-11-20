@@ -8,6 +8,8 @@ char def_user[] = secret_user;       //user name for enterprise from secrets
 int keyIndex = 0;                   //network key Index number (needed only for WEP)
 int status = WL_IDLE_STATUS;        //connection status
 
+String cardUID;
+
 IPAddress savedIP = IPAddress(0,0,0,0); //initialize IP varriable for securing web connections
 
 bool IPConnect = false;             //indicates when authorized client connected to server
@@ -151,15 +153,35 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 }
                 else DupeUser = true;
               }
-              else {        //indicates card register
+              else if(CardRegister) {        //indicates card register
                 String nickName;
-                for(int i = 5; i < postBody.length(); i++) {    //get only the nickname from the postBody
-                  nickName += postBody[i];
+                int position = postBody.indexOf('&'); //check if there is any checkboxes checked
+                if(position == -1) { //no boxes checked
+                  for(int i = 5; i < postBody.length(); i++) {    //get only the nickname from the postBody
+                    nickName += postBody[i];
+                  }
+                }
+                else {  //boxes checked
+                  for(int i = 5; i < position; i++) {    //get only the nickname from the postBody
+                    nickName += postBody[i];
+                  }
                 }
                 if(!checkSDForString("NAME.txt",nickName)) {     //if nickName is not a repeat
                   writeSDLine("NAME.txt", nickName);  //write nickname to SD
                   CardRegister = false;
                   DupeName = false;
+                  if(position != -1) { //if boxes were checked
+                    String postBoxes = postBody;
+                    postBoxes.remove(0, (position));
+                    String RCount = readSDLine("RCOUNT.txt", 1);
+                    int ReaderCount = RCount.toInt();
+                    for (int i = 0; i <= ReaderCount; i++) {  //check if any of the readers from reader count were checked starting from 0
+                      int found = postBoxes.indexOf(String(i));
+                      if(found != -1){
+                        newCardRegister(cardUID, lcd, i); //Register new card to reader i
+                      }
+                    }
+                  }
                 }
                 else DupeName = true;
               }
@@ -181,8 +203,28 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               else if (CardRegister) {
                 client.print(HTML_CardRegisterA);   //send card register HTML code
                 client.print(ip);                  //which requires ip address
-                if(!DupeName) client.print(HTML_CardRegisterB);
-                else client.print(HTML_CardRegisterDupeB);
+                client.print(HTML_CardRegisterB);
+                client.print("<input type=\"checkbox\" id=\"Reader0\" name=\"Reader0\" value=\"0\">");  //create check box for hub module
+                client.print("<label for=\"Reader0\"> Hub Reader</label><br>");
+                //create check boxes for any other registered readers
+                String RCount = readSDLine("RCOUNT.txt", 1);
+                int ReaderCount = RCount.toInt();
+                for(int i = 1; i <= ReaderCount; i++){
+                  client.print("<input type=\"checkbox\" id=\"Reader");
+                  client.print(String(i));
+                  client.print("\" name=\"Reader");
+                  client.print(String(i));
+                  client.print("\" value=\"");
+                  client.print(String(i));
+                  client.print("\">");  //create check box for hub module
+                  client.print("<label for=\"Reader");
+                  client.print(String(i));
+                  client.print("\"> Reader ");
+                  client.print(String(i));
+                  client.print("</label><br>");
+                }
+                if(!DupeName) client.print(HTML_CardRegisterC);
+                else client.print(HTML_CardRegisterDupeC);
               }
               else if (CardManage) {
                 client.print(HTML_CardManageA);   //send card manage HTML code
@@ -254,7 +296,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
 
         //Check for all anchor text presses
         if (currentLine.endsWith("GET /Register") && IPConnect) {
-          newCardRegister(mfrc522, lcd, &CardRegister, 0);  //Register new card      
+          cardUID = newCardRead(mfrc522, lcd, &CardRegister);  //Read new card
         }
         if (currentLine.endsWith("GET /ReaderAdd") && IPConnect) {
           BLE_Peripheral_Add_Reader();
@@ -286,6 +328,7 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           wipeSDFile("USERS.txt");
           wipeSDFile("LIST.txt");
           wipeSDFile("UID.txt");
+          wipeSDFile("READERS/UID0.txt");
           wipeSDFile("NAME.txt");
           wipeSDFile("LOGS.txt");
           String readerCount = readSDLine("RCOUNT.txt", 1);   //delete all reader UID files

@@ -30,7 +30,7 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
   Serial.println();
   content.toUpperCase();
   //Check if presented UID is valid
-  if (checkSDForString("UID.txt", toHash(content.substring(1)))) //if UID is valid
+  if (checkSDForString("READERS/UID0.txt", toHash(content.substring(1)))) //if UID is valid
   {
     lcd.clear();
     lcd.setCursor(4,0);
@@ -38,7 +38,7 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     lcd.setCursor(4,1); 
     lcd.print("Granted");
     //Log the access
-    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(content.substring(1)))) + " -- Access Granted"));
+    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(content.substring(1)))) + " -- Hub Reader -- Access Granted"));
     delay(5000);
     lcd.clear();
     lcd.setCursor(4,0); 
@@ -54,7 +54,10 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     lcd.setCursor(4,1);
     lcd.print("Denied");
     //Log the access
-    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- Unknown User -- Access Denied"));
+    if(checkSDForString("UID.txt", toHash(content.substring(1))))
+      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(content.substring(1)))) + " -- Hub Reader -- Access Denied"));
+    else
+      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- Unknown User -- Hub Reader -- Access Denied"));
     delay(5000);
     lcd.clear();
     lcd.setCursor(4,0);
@@ -64,7 +67,7 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
   }
 }
 
-void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister, int readerNumber) {
+String newCardRead(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister) {
   lcd.clear();
   lcd.setCursor(4,0);
   lcd.print("Present");
@@ -85,7 +88,7 @@ void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister,
       lcd.print("EZ Access");
       lcd.setCursor(4,1);
       lcd.print("And Logs");
-      return;
+      return "0";
     }
   }
 
@@ -96,40 +99,37 @@ void newCardRegister(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister,
     content.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   content.toUpperCase();
-
-  String UIDFile;           //file name to add UID hash to
-  if(readerNumber != 0)     //if not the hub reader
-    UIDFile = "READERS/UID" + String(readerNumber) + ".txt";
-  else
-    UIDFile = "UID.txt";    //else is the hub reader
-
-  if(!checkSDForString(UIDFile, toHash(content.substring(1)))) {  //write UID to SD if not already there
-    writeSDHashLine(UIDFile, content.substring(1));
-    *CardRegister = true;    //ensures proper page is shown on web
-    lcd.clear();
-    lcd.setCursor(4,0);
-    lcd.print("New Card");
-    lcd.setCursor(4,1); 
-    lcd.print("Registered");
-    delay(4000);
-    lcd.clear();
-    lcd.setCursor(4,0);
-    lcd.print("EZ Access");
-    lcd.setCursor(4,1);
-    lcd.print("And Logs");
-  }
-  else {                    //indicate registered failed on LCD
+  if(checkSDForString("UID.txt", toHash(content.substring(1)))) {
     lcd.clear();
     lcd.setCursor(4,0);
     lcd.print("Already");
     lcd.setCursor(4,1); 
     lcd.print("Registered");
-    delay(4000);
+    delay(3000);
     lcd.clear();
     lcd.setCursor(4,0);
     lcd.print("EZ Access");
     lcd.setCursor(4,1);
     lcd.print("And Logs");
+    return "0";
+  }
+  writeSDHashLine("UID.txt", content.substring(1));
+  *CardRegister = true;    //ensures proper page is shown on web
+  lcd.clear();
+  lcd.setCursor(4,0);
+  lcd.print("EZ Access");
+  lcd.setCursor(4,1);
+  lcd.print("And Logs");
+  return content.substring(1);
+}
+
+void newCardRegister(String UID, LiquidCrystal_I2C lcd, int readerNumber) {
+
+  String UIDFile;           //file name to add UID hash to
+  UIDFile = "READERS/UID" + String(readerNumber) + ".txt";
+
+  if(!checkSDForString(UIDFile, toHash(UID))) {  //write UID to SD if not already there
+    writeSDHashLine(UIDFile, UID);
   }
 
 }

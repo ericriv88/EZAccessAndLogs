@@ -10,7 +10,7 @@
   <nav>\
     <ul>\
       <li><a href=\"/ReaderAdd\">Register Additional Reader</a></li>\
-      <li><a href=\"/Register\">Register New Card to Hub</a></li>\
+      <li><a href=\"/Register\">Register New Card</a></li>\
       <li><a href=\"/Manage\">Manage Registered Cards</a></li>\
       <li><a href=\"/Logs\">Access Logs</a></li>\
       <li><a href=\"/New\">Register New User</a></li>\
@@ -311,7 +311,10 @@
     <p>\
       <label for=\"name\">NickName:</label>\
       <input type=\"text\" name=\"name\" id=\"name\" placeholder=\"Bob\" autocomplete=\"off\" required autofocus>\
-    </p>\
+      <br>\
+      <h3>Select readers:</h3>"
+
+#define HTML_CardRegisterC "</p>\
     <br>\
     <button type=\"submit\">Register</button>\
   </form>\
@@ -322,13 +325,8 @@
 </body>\
 </html>"
 
-#define HTML_CardRegisterDupeB "\" method=\"post\">\
-    <hr>\
-    <p>\
-      <label for=\"name\">NickName:</label>\
-      <input type=\"text\" name=\"name\" id=\"name\" placeholder=\"Bob\" autocomplete=\"off\" required autofocus>\
-    </p>\
-    <br>\
+#define HTML_CardRegisterDupeC "</p?\
+  <br>\
     <button type=\"submit\">Register</button>\
   </form>\
   <p class=\"center\">Enter Unique Nick Name</p>\
