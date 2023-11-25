@@ -188,6 +188,24 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               }
               else if(CardManage) {
                 CardManage = false;
+                String readerCount = readSDLine("RCOUNT.txt", 1); //wipe UID files for rewrite
+                for(int i = 0; i <= readerCount.toInt(); i++) {
+                  String fileName = "READERS/UID" + String(i) + ".txt";
+                  wipeSDFile(fileName);
+                }
+                for(int i = 1; i <= SDLineCount("NAME.txt"); i++) { //for each registered card, write to UID file if box is checked
+                  String name = readSDLine("NAME.txt", i);
+                  name = name + "=";
+                  String UIDHash = readSDLine("UID.txt", i);
+                  int index = postBody.indexOf(name);
+                  while(index != -1) {
+                    int ampIndex = postBody.indexOf("&", index);
+                    String readerNum = postBody.substring((index + name.length()), ampIndex); //get String representation of reader number
+                    String fileName = "READERS/UID" + readerNum + ".txt"; //write UID to file
+                    writeSDLine(fileName, UIDHash);
+                    index = postBody.indexOf(name, ampIndex);
+                  }
+                }
               }
             }
 
@@ -249,25 +267,31 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                 for(int i = 1; i <= SDLineCount("NAME.txt"); i++) {
                   client.print("<p>");
                   String name = readSDLine("NAME.txt", i);
+                  String UIDHash = readSDLine("UID.txt", i);
                   client.print(name);
                   client.print(": ");
                   client.print("<input type=\"checkbox\" id=\"");
-                    client.print(name);
-                    client.print("\" name=\"");
-                    client.print(name);
-                    client.print("\" value=\"0\">");  //create check box for hub module
-                    client.print("<label for=\"");
-                    client.print(name);
-                    client.print("\"> Reader Hub  </label>");
+                  client.print(name);
+                  client.print("\" name=\"");
+                  client.print(name);
+                  client.print("\" value=\"0\"");  //create check box for hub module
+                  if(checkSDForString("READERS/UID0.txt", UIDHash)) client.print(" checked>");  //checkbox is checked if already registered to hub
+                  else client.print(">");
+                  client.print("<label for=\"");
+                  client.print(name);
+                  client.print("\"> Reader Hub  </label>");
                   String readerCount = readSDLine("RCOUNT.txt", 1);
                   for(int j = 1; j <= readerCount.toInt(); j++) {
+                    String FileName = "READERS/UID" + String(j) + ".txt";
                     client.print("<input type=\"checkbox\" id=\"");
                     client.print(name);
                     client.print("\" name=\"");
                     client.print(name);
                     client.print("\" value=\"");
                     client.print(String(j));
-                    client.print("\">");  //create check box for hub module
+                    client.print("\"");  //create check box for reader module
+                    if(checkSDForString(FileName, UIDHash)) client.print(" checked>");  //checkbox is checked if already registered to reader
+                    else client.print(">");
                     client.print("<label for=\"");
                     client.print(name);
                     client.print("\"> Reader ");
