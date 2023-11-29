@@ -12,6 +12,18 @@ String readCharacteristicString(BLECharacteristic charac, int length) {
   return ret;
 }
 
+uint8_t readCharacteristicByte(BLECharacteristic charac) {
+  uint8_t val;
+  charac.readValue(val);
+  return val;
+}
+
+void writeCharacteristic(BLECharacteristic charac, String in) {
+  if(charac.canWrite()) {
+    charac.writeValue(in.c_str());
+  }
+}
+
 bool BLELookForService(String UIDHash) {
   Serial.print("Starting BLE connection... ");
 
@@ -39,25 +51,27 @@ bool BLELookForService(String UIDHash) {
     if(peripheral.connect()) {
       Serial.println("Connected to peripheral");
       if(peripheral.discoverAttributes()) {
-        if(peripheral.hasService(default_uuid))
+        if(peripheral.hasService(default_uuid)) {
           Serial.println("Found default service");
-
           BLEService service = peripheral.service(default_uuid);
-          Serial.print("Reading characteristic strings from service ");
-          Serial.print(service.uuid());
-          Serial.println(":");
           for(int j = 0; j < service.characteristicCount(); j++) {
             BLECharacteristic charac = service.characteristic(j);
-            String mystring = readCharacteristicString(charac, charCount);
-            if(UIDHash == mystring) {
-              peripheral.disconnect();
-              return true;
+            if(charac.canRead()) {
+              uint8_t check = readCharacteristicByte(charac);
+              if(check == 0x88) {
+                peripheral.disconnect();
+                return true;
+              }
             }
+            if(j == 4) writeCharacteristic(charac, String(default_uuid[0]));
+            else writeCharacteristic(charac, UIDHash.substring((16*j), (16*(j+1))));
           }
           Serial.println();
           peripheral.disconnect();
           return false;
+        }
       }
+      peripheral.disconnect();
     }
   return false;
   }
