@@ -39,7 +39,7 @@
   <header>\
     <h1>EZ Access and Logs</h1>\
   </header>\
-  <p>You have logged out and tunred off wifi connection</p>\
+  <p>You have logged out and turned off wifi connection</p>\
   <footer>\
     <hr>\
     <p>&lt;&lt;&lt; &copy; EZ Access and Logs &gt;&gt;&gt;</p>\
@@ -312,6 +312,8 @@
     <p>\
       <label for=\"name\">NickName:</label>\
       <input type=\"text\" name=\"name\" id=\"name\" placeholder=\"Bob\" autocomplete=\"off\" required autofocus>\
+      <label for=\"name\">Keypad Pin:</label>\                
+      <input type=\"text\" name=\"pin\" id=\"pin\" placeholder=\"A123#\" autocomplete=\"off\" minlength = \"5\" maxlength = \"5\" required>\
       <br>\
       <h3>Select readers:</h3>"
 

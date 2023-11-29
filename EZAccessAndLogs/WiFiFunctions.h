@@ -9,6 +9,7 @@ int keyIndex = 0;                   //network key Index number (needed only for 
 int status = WL_IDLE_STATUS;        //connection status
 
 String cardUID;
+String cardPIN;
 
 IPAddress savedIP = IPAddress(0,0,0,0); //initialize IP varriable for securing web connections
 
@@ -156,30 +157,33 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
               }
               else if(CardRegister) {        //indicates card register
                 String nickName;
-                int position = postBody.indexOf('&'); //check if there is any checkboxes checked
-                if(position == -1) { //no boxes checked
-                  for(int i = 5; i < postBody.length(); i++) {    //get only the nickname from the postBody
+                String keypadPin;
+                int position = postBody.indexOf('&'); 
+              
+                for(int i = 5; i < position; i++) {    //get only the nickname from the postBody
                     nickName += postBody[i];
                   }
-                }
-                else {  //boxes checked
-                  for(int i = 5; i < position; i++) {    //get only the nickname from the postBody
-                    nickName += postBody[i];
+                for (int i = position + 5; i < position + 10; i++) {    //get only the pin from the postBody
+                    keypadPin += postBody[i];
                   }
-                }
+                String pinHash = toHash(keypadPin);
+
+                int position2 = postBody.indexOf('&', position + 1);
+
                 if(!checkSDForString("NAME.txt",nickName)) {     //if nickName is not a repeat
                   writeSDLine("NAME.txt", nickName);  //write nickname to SD
+                  writeSDLine("KEYPAD.txt", pinHash);
                   CardRegister = false;
                   DupeName = false;
-                  if(position != -1) { //if boxes were checked
+                  if(position2 != -1) { //if boxes were checked
                     String postBoxes = postBody;
-                    postBoxes.remove(0, (position));
+                    postBoxes.remove(0, (position2));
                     String RCount = readSDLine("RCOUNT.txt", 1);
                     int ReaderCount = RCount.toInt();
                     for (int i = 0; i <= ReaderCount; i++) {  //check if any of the readers from reader count were checked starting from 0
                       int found = postBoxes.indexOf(String(i));
                       if(found != -1){
-                        newCardRegister(cardUID, lcd, i); //Register new card to reader i
+                       newCardRegister(cardUID, cardPIN, lcd, i); //Register new card to reader i
                       }
                     }
                   }
@@ -197,12 +201,15 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
                   String name = readSDLine("NAME.txt", i);
                   name = name + "=";
                   String UIDHash = readSDLine("UID.txt", i);
+                  String KEYPADHash = readSDLine("KEYPAD.txt", i);
                   int index = postBody.indexOf(name);
                   while(index != -1) {
                     int ampIndex = postBody.indexOf("&", index);
                     String readerNum = postBody.substring((index + name.length()), ampIndex); //get String representation of reader number
                     String fileName = "READERS/UID" + readerNum + ".txt"; //write UID to file
                     writeSDLine(fileName, UIDHash);
+                    String fileName1 = "READERS/KEYPAD" + readerNum + ".txt"; //write keypad pin to file
+                    writeSDLine(fileName1, KEYPADHash);
                     index = postBody.indexOf(name, ampIndex);
                   }
                 }
@@ -383,8 +390,9 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
         }
         if (currentLine.endsWith("GET /Delete") && IPConnect) {
           String readerCount = readSDLine("RCOUNT.txt", 1);
-          wipeSDFile("NAME.txt");    //wipe nickname and UID files
+          wipeSDFile("NAME.txt");    //wipe nickname, UID, and keypad files
           wipeSDFile("UID.txt");
+          wipeSDFile("KEYPAD.txt");
           for(int i = 0; i <= readerCount.toInt(); i++) {
             String fileName = "READERS/UID" + String(i) + ".txt";
             wipeSDFile(fileName);
@@ -404,8 +412,10 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
           wipeSDFile("LIST.txt");
           wipeSDFile("UID.txt");
           wipeSDFile("READERS/UID0.txt");
+          wipeSDFile("READERS/KEYPAD0.txt");
           wipeSDFile("NAME.txt");
           wipeSDFile("LOGS.txt");
+          wipeSDFile("KEYPAD.txt");
           String readerCount = readSDLine("RCOUNT.txt", 1);   //delete all reader UID files
           for(int i = 1; i <= readerCount.toInt(); i++) {
             String UIDFile = "READERS/UID" + String(i) + ".txt";
@@ -439,14 +449,23 @@ void printWEB(WiFiClient client, bool* IPSetup, LiquidCrystal_I2C lcd, IPAddress
             String cardDelete = "GET /CD" + String(i);
             if(currentLine.endsWith(cardDelete)) {
               String DelUID = readSDLine("UID.txt", i);
+              String DelKEYPAD = readSDLine("KEYPAD.txt", i);
               String readerCount = readSDLine("RCOUNT.txt", 1);
               deleteSDLine("NAME.txt", i);    //delete nickanme and UID from files
               deleteSDLine("UID.txt", i);
+              deleteSDLine("KEYPAD.txt", i);
               for(int i = 0; i <= readerCount.toInt(); i++) {
                 String fileName = "READERS/UID" + String(i) + ".txt";
-                if(checkSDForString(fileName, DelUID)) {
+                if(checkSDForString(fileName, DelUID))
+                 {
                   int line = findSDStringLine(fileName, DelUID);
                   deleteSDLine(fileName, line);
+                 }
+                String fileName1 = "READERS/KEYPAD" + String(i) + ".txt";
+                if(checkSDForString(fileName, DelKEYPAD)) 
+                {
+                  int line1 = findSDStringLine(fileName1, DelKEYPAD);
+                  deleteSDLine(fileName1, line1);
                 }
               }
             }
