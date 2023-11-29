@@ -33,7 +33,7 @@ void BLE_Peripheral_Add_Reader() {  //adds new reader by making new txt file for
   String fileName = "READERS/UID" + String(ReaderCount) + ".txt";
   createSDFile(fileName); //creates file to add valid UID hashes 
   String fileName1 = "READERS/KEYPAD" + String(ReaderCount) + ".txt";
-  createSDFile(fileName1); //creates file to add valid UID hashes 
+  createSDFile(fileName1); //creates file to add valid keypad hashes 
 }
 
 String intToHEX(int num) {   //takes int and makes it a 2 digit hex value
