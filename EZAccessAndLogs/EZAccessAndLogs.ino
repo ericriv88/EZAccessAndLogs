@@ -65,12 +65,14 @@ void setup()
   IPSetup = readSDBool("SET.txt"); //read file on SD card for IPSetup value
 
   rtc.begin();            //set up RTC
+
+  enable_WiFi(lcd);       //reset wifi status and connect
+  connect_WiFi(Enterprise, lcd);
   unsigned long epoch;    //get time and date from web
   epoch = WiFi.getTime();
   rtc.setEpoch(epoch);    //set RTC instance to proper start time and date
-
-  enable_WiFi(lcd);       //reset wifi status and end connection
-  WiFi.end();
+  Serial.println("Time and date received from WiFi.");
+  WiFi.end();             //end Wifi
 
   lcd.clear();
   lcd.setCursor(4,0);

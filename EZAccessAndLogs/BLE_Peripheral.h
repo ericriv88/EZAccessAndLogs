@@ -11,6 +11,8 @@
 String UIDHash = "";
 bool validUID = false;
 
+extern RTCZero rtc;
+
 void BLE_Peripheral_init() {      //initialize BLE_Peripheral 
  Serial.print("Starting BLE peripheral... ");
   if (!BLE.begin()) {
@@ -66,7 +68,16 @@ void writeHandle(BLEDevice central, BLECharacteristic characteristic) {   //hand
     String readerNum = String(UIDHash.charAt(UIDHash.length() - 1));  //save reader number for file name
     String fileName = "READERS/UID" + readerNum + ".txt";
     UIDHash.remove((UIDHash.length() - 1));   //remove reader number from hash
-    if(checkSDForString(fileName, UIDHash)) validUID = true;  //check if valid from file given reader number
+    if(checkSDForString(fileName, UIDHash)) { //check if valid from file given reader number
+      validUID = true;
+      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", UIDHash)) + " -- Reader " + readerNum + " -- Access Granted"));
+    }
+    else if(checkSDForString("UID.txt", UIDHash)) {
+      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", UIDHash)) + " -- Reader " + readerNum + " -- Access Denied"));
+    }
+    else {
+      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- Unknown User -- Reader " + readerNum + " -- Access Denied"));
+    }
     UIDHash = ""; //clear Hash string
   }
 }
