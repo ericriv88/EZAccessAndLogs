@@ -312,8 +312,6 @@
     <p>\
       <label for=\"name\">NickName:</label>\
       <input type=\"text\" name=\"name\" id=\"name\" placeholder=\"Bob\" autocomplete=\"off\" required autofocus>\
-      <label for=\"name\">Keypad Pin:</label>\                
-      <input type=\"text\" name=\"pin\" id=\"pin\" placeholder=\"A123#\" autocomplete=\"off\" minlength=\"5\" maxlength=\"5\" required pattern=\"[0-9A-D*#]{5}\" title=\"Please enter only uppercase letters A-D, digits, '*' and '#'\">\
       <br>\
       <h3>Select readers:</h3>"
 

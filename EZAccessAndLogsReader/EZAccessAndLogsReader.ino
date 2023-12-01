@@ -1,12 +1,28 @@
 #include <LiquidCrystal_I2C.h>
 #include <SPI.h>
 #include <MFRC522.h>
+#include <Keypad.h>
 #include "Reader_Specs.h"
 #include "BLE_CDevice.h"
 #include "HashFunctions.h"
 
 #define SS_PIN 7                    //Define SDA and RST pins for MFRC522 connection
 #define RST_PIN 6
+
+const byte ROWS = 4; // Number of rows on the keypad
+const byte COLS = 4; // Number of columns on the keypad
+
+char keys[ROWS][COLS] = {
+  {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+};
+
+byte rowPins[ROWS] = {16, 17, 18, 19}; // Connect to the row pinouts of the keypad
+byte colPins[COLS] = {2, 3, 4, 5}; // Connect to the column pinouts of the keypad
+
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 
@@ -60,7 +76,30 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd)
   }
   Serial.println();
   content.toUpperCase();
-  String UIDHash = toHash(content.substring(1));
+
+  //get pin from keypad
+  static char inputSequence[5]; // Array to store the entered characters 
+  int count = 0; // Counter to keep track of entered characters
+
+  lcd.clear();
+  lcd.setCursor(3,0);
+  lcd.print("Enter Pin:");
+
+  while (count < 5) {
+    char key = keypad.getKey(); // Get keypad input
+
+    if (key != NO_KEY) {
+      inputSequence[count] = key;
+      count++;
+            
+      lcd.setCursor(count - 1,1); // Update LCD with entered PIN
+      lcd.print(key); // Display entered digit on LCD
+    }
+  }
+
+  String credential = content.substring(1) + inputSequence;
+
+  String UIDHash = toHash(credential);
   if(BLELookForService(UIDHash)) {    //Check if presented UID (content.substring(1)) is valid
     lcd.clear();
     lcd.setCursor(4,0);

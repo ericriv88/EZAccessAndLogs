@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////
-//**********************UID/KEYPAD Functions*****************************///
+//***********************UID Functions***********************************///
 ////////////////////////////////////////////////////////////////////////////
 
 #include "SDFunctions.h"
 #include "RTCFunctions.h"
-#include "Keypad.h"
+#include <Keypad.h>
 
 const byte ROWS = 4; // Number of rows on the keypad
 const byte COLS = 4; // Number of columns on the keypad
@@ -45,31 +45,31 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
   }
   Serial.println();
   content.toUpperCase();
+  
+  //get pin from keypad
+  static char inputSequence[5]; // Array to store the entered characters 
+  int count = 0; // Counter to keep track of entered characters
 
+  lcd.clear();
+  lcd.setCursor(3,0);
+  lcd.print("Enter Pin:");
 
-    static char inputSequence[5]; // Array to store the entered characters 
-    static int count = 0; // Counter to keep track of entered characters
+  while (count < 5) {
+    char key = keypad.getKey(); // Get keypad input
 
-    lcd.clear();
-    lcd.setCursor(3,0);
-    lcd.print("Enter Pin:");
-
-    while (count < 5) {
-        char key = keypad.getKey(); // Get keypad input
-
-        if (key != NO_KEY) {
-            inputSequence[count] = key;
-            count++;
-            Serial.print("Pressed: ");
-            Serial.println(key);
+    if (key != NO_KEY) {
+      inputSequence[count] = key;
+      count++;
             
-            lcd.setCursor(count - 1,1); // Update LCD with entered PIN
-            lcd.print(key); // Display entered digit on LCD
-        }
+      lcd.setCursor(count - 1,1); // Update LCD with entered PIN
+      lcd.print(key); // Display entered digit on LCD
     }
+  }
 
-  //Check if presented UID and PIN are valid
-  if (checkSDForString("UID.txt", toHash(content.substring(1))) && checkSDForString("KEYPAD.txt", toHash(inputSequence))) //if UID & KEYPAD are valid
+  String credential = content.substring(1) + inputSequence;
+
+  //Check if presented UID is valid
+  if (checkSDForString("READERS/UID0.txt", toHash(credential))) //if UID is valid
   {
     lcd.clear();
     lcd.setCursor(4,0);
@@ -77,7 +77,7 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     lcd.setCursor(4,1); 
     lcd.print("Granted");
     //Log the access
-    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(content.substring(1)))) + " -- Hub Reader -- Access Granted"));
+    writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(credential))) + " -- Hub Reader -- Access Granted"));
     delay(5000);
     lcd.clear();
     lcd.setCursor(4,0); 
@@ -94,7 +94,7 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     lcd.print("Denied");
     //Log the access
     if(checkSDForString("UID.txt", toHash(content.substring(1))))
-      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(content.substring(1)))) + " -- Hub Reader -- Access Denied"));
+      writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- " + readSDLine("NAME.txt", findSDStringLine("UID.txt", toHash(credential))) + " -- Hub Reader -- Access Denied"));
     else
       writeSDLine("LOGS.txt", (DateandTime(rtc) + " -- Unknown User -- Hub Reader -- Access Denied"));
     delay(5000);
@@ -104,8 +104,6 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     lcd.setCursor(4,1);
     lcd.print("And Logs");
   }
-    count = 0;
-    memset(inputSequence, 0, sizeof(inputSequence)); // Clear the array
 }
 
 String newCardRead(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister) {
@@ -140,7 +138,30 @@ String newCardRead(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister) {
     content.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   content.toUpperCase();
-  if(checkSDForString("UID.txt", toHash(content.substring(1)))) {
+
+  //get pin from keypad
+  static char inputSequence[5]; // Array to store the entered characters 
+  int count = 0; // Counter to keep track of entered characters
+
+  lcd.clear();
+  lcd.setCursor(3,0);
+  lcd.print("Enter Pin:");
+
+  while (count < 5) {
+    char key = keypad.getKey(); // Get keypad input
+
+    if (key != NO_KEY) {
+      inputSequence[count] = key;
+      count++;
+            
+      lcd.setCursor(count - 1,1); // Update LCD with entered PIN
+      lcd.print(key); // Display entered digit on LCD
+    }
+  }
+
+  String credential = content.substring(1) + inputSequence;
+
+  if(checkSDForString("UID.txt", toHash(credential))) {
     lcd.clear();
     lcd.setCursor(4,0);
     lcd.print("Already");
@@ -154,28 +175,23 @@ String newCardRead(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister) {
     lcd.print("And Logs");
     return "0";
   }
-  writeSDHashLine("UID.txt", content.substring(1));
+  writeSDHashLine("UID.txt", credential);
   *CardRegister = true;    //ensures proper page is shown on web
   lcd.clear();
   lcd.setCursor(4,0);
   lcd.print("EZ Access");
   lcd.setCursor(4,1);
   lcd.print("And Logs");
-  return content.substring(1);
+  return credential;
 }
 
-void newCardRegister(String UID, String KEYPAD, LiquidCrystal_I2C lcd, int readerNumber) 
-{
+void newCardRegister(String UID, LiquidCrystal_I2C lcd, int readerNumber) {
+
   String UIDFile;           //file name to add UID hash to
   UIDFile = "READERS/UID" + String(readerNumber) + ".txt";
 
   if(!checkSDForString(UIDFile, toHash(UID))) {  //write UID to SD if not already there
     writeSDHashLine(UIDFile, UID);
   }
-  String KEYPADFile;           //file name to add KEYPAD hash to
-  KEYPADFile = "READERS/KEYPAD" + String(readerNumber) + ".txt";
 
-  if(!checkSDForString(KEYPADFile, toHash(KEYPAD))) {  //write PIN to SD if not already there
-    writeSDHashLine(KEYPADFile, KEYPAD);
-  }
 }
