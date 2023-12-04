@@ -116,7 +116,14 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd) {
         }
     }
 
-    String credential = content.substring(1) + inputSequence;
+    lcd.clear();
+    lcd.setCursor(3, 0);
+    lcd.print("Checking");
+    lcd.setCursor(2, 1);
+    lcd.print("Credential");
+
+    String credential = content.substring(1) + String(inputSequence);
+    credential.remove(credential.length()-1);
     String UIDHash = toHash(credential);
     if (BLELookForService(UIDHash)) { // Check if presented UID (content.substring(1)) is valid
         lcd.clear();

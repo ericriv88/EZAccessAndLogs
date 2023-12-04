@@ -26,7 +26,6 @@ void writeCharacteristic(BLECharacteristic charac, String in) {
 
 bool BLELookForService(String UIDHash) {
   Serial.print("Starting BLE connection... ");
-
   if (!BLE.begin()) {
     Serial.println("failed!");
     return false;
@@ -36,15 +35,9 @@ bool BLELookForService(String UIDHash) {
     Serial.println("Scanning for \"EZALServer\"");
     BLE.scanForName("EZALServer");
     BLEDevice peripheral = BLE.available();
-    int count = 0;
     while(!peripheral) {
       peripheral = BLE.available();
       delay(500);
-      count++;
-      if(count == 6) {
-        BLE.stopScan();
-        return false;
-      }
     }
     BLE.stopScan();
 
