@@ -66,10 +66,13 @@ void UIDAccess(MFRC522 mfrc522, LiquidCrystal_I2C lcd, RTCZero rtc)
     }
   }
 
-  String credential = content.substring(1) + String(inputSequence);
-  String cred1 = toHash(credential);
+  String credential = content.substring(1);
+  for(int i = 0; i < 5; i++) {
+    credential += String(inputSequence[i]);
+  }
+
   //Check if presented UID is valid
-  if (checkSDForString("READERS/UID0.txt", cred1)) //if UID is valid
+  if (checkSDForString("READERS/UID0.txt", toHash(credential))) //if UID is valid
   {
     lcd.clear();
     lcd.setCursor(4,0);
@@ -159,9 +162,11 @@ String newCardRead(MFRC522 mfrc522, LiquidCrystal_I2C lcd, bool* CardRegister) {
     }
   }
 
-  String credential = content.substring(1) + String(inputSequence);
-  Serial.print(credential);
-  Serial.print(toHash(credential));
+  String credential = content.substring(1);
+  for(int i = 0; i < 5; i++) {
+    credential += String(inputSequence[i]);
+  }
+
   if(checkSDForString("UID.txt", toHash(credential))) {
     lcd.clear();
     lcd.setCursor(4,0);
