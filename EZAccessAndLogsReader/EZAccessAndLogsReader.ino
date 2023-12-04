@@ -12,7 +12,6 @@
 
 volatile int length = 4800;
 bool cardDetected = false;
-const byte interruptPin = 0; // Define interrupt pin for button press
 const byte ROWS = 4; // Number of rows on the keypad
 const byte COLS = 4; // Number of columns on the keypad
 unsigned long startTime;
